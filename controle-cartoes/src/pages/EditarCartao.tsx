@@ -2,23 +2,23 @@ import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import type { Pessoa, Cartao } from '../types';
 
-interface AdicionarCartaoProps {
+interface EditarCartaoProps {
   pessoas: Pessoa[];
   setPessoas: React.Dispatch<React.SetStateAction<Pessoa[]>>;
 }
 
-export default function AdicionarCartao({ pessoas, setPessoas }: AdicionarCartaoProps) {
-  const { id } = useParams<{ id: string }>();
+export default function EditarCartao({ pessoas, setPessoas }: EditarCartaoProps) {
+  const { id, cartaoId } = useParams<{ id: string; cartaoId: string }>();
   const navigate = useNavigate();
-
   const pessoaIndex = pessoas.findIndex(p => p.id === Number(id));
-  if (pessoaIndex === -1) return <p>Pessoa não encontrada.</p>;
-
-  const [nome_cartao, setNomeCartao] = useState('');
-  const [valor_total, setValorTotal] = useState<number>(0);
-  const [numero_de_parcelas, setNumeroDeParcelas] = useState<number>(1);
-  const [sucesso, setSucesso] = useState(false);
+  const pessoa = pessoas[pessoaIndex];
+  const cartao = pessoa?.cartoes.find(c => c.id === Number(cartaoId));
+  const [nome_cartao, setNomeCartao] = useState(cartao?.nome_cartao || '');
+  const [valor_total, setValorTotal] = useState<number>(cartao?.valor_total || 0);
+  const [numero_de_parcelas, setNumeroDeParcelas] = useState<number>(cartao?.numero_de_parcelas || 1);
   const [erro, setErro] = useState('');
+
+  if (!pessoa || !cartao) return <p>Cartão ou pessoa não encontrada.</p>;
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -36,37 +36,24 @@ export default function AdicionarCartao({ pessoas, setPessoas }: AdicionarCartao
       return;
     }
     setPessoas(prev => {
-      const newCartao: Cartao = {
-        id: prev[pessoaIndex].cartoes.length > 0
-          ? Math.max(...prev[pessoaIndex].cartoes.map(c => c.id)) + 1
-          : 1,
-        nome_cartao: nome_cartao.trim(),
-        valor_total,
-        numero_de_parcelas,
-        parcelas_pagas: 0,
-      };
-
       const newPessoas = [...prev];
-      newPessoas[pessoaIndex].cartoes.push(newCartao);
+      newPessoas[pessoaIndex] = {
+        ...pessoa,
+        cartoes: pessoa.cartoes.map(c =>
+          c.id === cartao.id
+            ? { ...c, nome_cartao: nome_cartao.trim(), valor_total, numero_de_parcelas }
+            : c
+        ),
+      };
       return newPessoas;
     });
-    setSucesso(true);
-    setTimeout(() => {
-      navigate(`/pessoa/${id}`);
-    }, 1200);
+    navigate(`/pessoa/${id}`);
   }
 
   return (
     <div className="container">
-      <h2>Adicionar Cartão para {pessoas[pessoaIndex].nome}</h2>
-      {sucesso && (
-        <div className="success-message">
-          Cartão adicionado com sucesso!
-        </div>
-      )}
-      {erro && (
-        <div className="success-message" style={{ background: '#f8d7da', color: '#721c24', border: '1.5px solid #f5c6cb' }}>{erro}</div>
-      )}
+      <h2>Editar Cartão</h2>
+      {erro && <div className="success-message" style={{ background: '#f8d7da', color: '#721c24', border: '1.5px solid #f5c6cb' }}>{erro}</div>}
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxWidth: 350 }}>
         <div>
           <label>Nome do Cartão:</label>
@@ -100,9 +87,7 @@ export default function AdicionarCartao({ pessoas, setPessoas }: AdicionarCartao
             style={{ width: '100%' }}
           />
         </div>
-        <button type="submit">
-          Adicionar Cartão
-        </button>
+        <button type="submit">Salvar</button>
       </form>
     </div>
   );
