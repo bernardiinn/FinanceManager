@@ -40,7 +40,7 @@ export default function EditarCartao({ pessoas, setPessoas }: EditarCartaoProps)
       newPessoas[pessoaIndex] = {
         ...pessoa,
         cartoes: pessoa.cartoes.map(c =>
-          c.id === cartao.id
+          c.id === cartao!.id
             ? { ...c, nome_cartao: nome_cartao.trim(), valor_total, numero_de_parcelas }
             : c
         ),
