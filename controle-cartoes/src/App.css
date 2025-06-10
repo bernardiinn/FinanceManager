@@ -1,0 +1,163 @@
+/*
+  Paleta de cores:
+  - Primária: #007bff
+  - Sucesso: #28a745
+  - Fundo: #f8f9fa
+  - Texto: #222
+  - Cartão: #fff
+  - Borda: #e0e0e0
+*/
+
+body {
+  background: #f8f9fa;
+  color: #222;
+  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+nav {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px #eee;
+  padding: 12px 24px;
+  margin-bottom: 24px;
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+nav a {
+  color: #007bff;
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.2s;
+}
+
+nav a:hover {
+  color: #0056b3;
+}
+
+.container {
+  max-width: 600px;
+  margin: 0 auto;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 16px #e0e0e0;
+  padding: 32px 24px 24px 24px;
+}
+
+h1, h2, h3, h4 {
+  font-family: inherit;
+  font-weight: 700;
+  margin-top: 0;
+}
+
+button {
+  background: #007bff;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 18px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+button:disabled {
+  background: #b0c4de;
+  cursor: not-allowed;
+}
+
+button:hover:not(:disabled) {
+  background: #0056b3;
+}
+
+input[type="text"], input[type="number"] {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #e0e0e0;
+  border-radius: 5px;
+  font-size: 1rem;
+  margin-top: 4px;
+  margin-bottom: 8px;
+  background: #fafbfc;
+}
+
+form label {
+  font-weight: 500;
+}
+
+.card {
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 1px 6px #f0f0f0;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.success-message {
+  background: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+  border-radius: 6px;
+  padding: 10px;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+.logo {
+  height: 6em;
+  padding: 1.5em;
+  will-change: filter;
+  transition: filter 300ms;
+}
+.logo:hover {
+  filter: drop-shadow(0 0 2em #646cffaa);
+}
+.logo.react:hover {
+  filter: drop-shadow(0 0 2em #61dafbaa);
+}
+
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
+
+.card {
+  padding: 2em;
+}
+
+.read-the-docs {
+  color: #888;
+}
+
+@media (max-width: 600px) {
+  .container {
+    padding: 12px 4px 16px 4px;
+  }
+  nav {
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 8px;
+  }
+}
