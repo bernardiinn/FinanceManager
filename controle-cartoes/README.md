@@ -1,54 +1,100 @@
-# React + TypeScript + Vite
+# 💳 Controle de Cartões - Card Lending Manager
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A modern, production-ready Progressive Web App for managing credit cards lent to friends and family members.
 
-Currently, two official plugins are available:
+## 🎯 Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **👥 Person Management**: Add, edit, and organize people who have borrowed your cards
+- **💳 Card Tracking**: Monitor each card's total value, installments, and payment progress
+- **📊 Financial Dashboard**: Real-time overview of total lent, received, and outstanding amounts
+- **📱 Mobile-First Design**: Responsive interface optimized for both mobile and desktop
+- **🔒 Privacy**: All data stored locally with optional backup/export
+- **⚡ PWA Support**: Install as a native app with offline capabilities
+- **🌙 Dark Mode**: Toggle between light and dark themes
+- **📈 Analytics**: Visual insights into lending patterns and payment history
 
-## Expanding the ESLint configuration
+## 🚀 Tech Stack
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- **Frontend**: React 19 + TypeScript
+- **Build Tool**: Vite 6.3.5 (ultra-fast HMR)
+- **Routing**: React Router DOM 7.6.2
+- **Icons**: React Icons 5.5.0
+- **PWA**: Vite PWA Plugin
+- **Styling**: Modern CSS with custom properties
+- **State**: React hooks + Backend SQLite database + JWT session authentication
 
-```js
-export default tseslint.config({
-  extends: [
-    // Remove ...tseslint.configs.recommended and replace with this
-    ...tseslint.configs.recommendedTypeChecked,
-    // Alternatively, use this for stricter rules
-    ...tseslint.configs.strictTypeChecked,
-    // Optionally, add this for stylistic rules
-    ...tseslint.configs.stylisticTypeChecked,
-  ],
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+## 🛠️ Development
+
+### Quick Start
+```bash
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
+
+# Build for production
+npm run build
+
+# Preview production build
+npm run preview
+
+# Lint code
+npm run lint
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default tseslint.config({
-  plugins: {
-    // Add the react-x and react-dom plugins
-    'react-x': reactX,
-    'react-dom': reactDom,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended typescript rules
-    ...reactX.configs['recommended-typescript'].rules,
-    ...reactDom.configs.recommended.rules,
-  },
-})
+### Project Structure
 ```
+src/
+├── components/        # Reusable UI components
+├── pages/            # Route components
+├── services/         # Business logic and data management
+├── hooks/            # Custom React hooks
+├── styles/           # Global styles and themes
+├── utils/            # Helper functions
+└── types.ts          # TypeScript type definitions
+```
+
+## 📱 Usage
+
+1. **Add People**: Start by adding friends/family who have borrowed your cards
+2. **Register Cards**: For each person, add their borrowed cards with payment details
+3. **Track Payments**: Update payment progress as installments are paid
+4. **Monitor Dashboard**: View real-time financial overview and analytics
+5. **Export Data**: Backup your data or generate reports
+
+## 🔧 Configuration
+
+The app supports customization through:
+- **Theme Settings**: Light/dark mode toggle
+- **Currency Format**: Localized currency display
+- **Notification Preferences**: Payment reminders and alerts
+- **Data Export**: JSON, CSV, or PDF formats
+
+## 📊 Analytics Features
+
+- Monthly lending/receiving reports
+- Payment completion rates
+- Person-wise debt analysis
+- Overdue payment tracking
+- Visual charts and graphs
+
+## 🔒 Privacy & Security
+
+- All data stored locally in browser
+- No external data transmission
+- Optional passcode protection
+- Secure data export options
+- Regular backup reminders
+
+## 🌐 PWA Features
+
+- Install as native app
+- Offline functionality
+- Push notifications (optional)
+- Fast loading and caching
+- Cross-platform compatibility
+
+## 📝 License
+
+MIT License - feel free to use for personal projects

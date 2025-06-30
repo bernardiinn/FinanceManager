@@ -2,19 +2,40 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#007bff" />
-
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+    <meta name="theme-color" content="#3b82f6" />
+    <meta name="msapplication-TileColor" content="#3b82f6" />
+    
     <!-- PWA Meta Tags -->
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="Controle de Cartões" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Cartões" />
+    
+    <!-- Prevent zooming on form inputs -->
+    <meta name="format-detection" content="telephone=no" />
+    
+    <!-- iOS Safari specific -->
+    <meta name="apple-touch-fullscreen" content="yes" />
+    <meta name="apple-mobile-web-app-orientations" content="portrait" />
+    
+    <!-- Description for PWA -->
+    <meta name="description" content="Gerencie cartões emprestados de forma simples e eficiente" />
+    <meta name="keywords" content="cartões, empréstimos, finanças, controle, PWA" />
 
     <!-- Favicon e Apple Touch Icon -->
-    <link rel="icon" href="/favicon.ico" />
+    <link rel="icon" href="/icon.png" type="image/png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" />
+    <link rel="apple-touch-icon" href="/icon-192.png" sizes="192x192" />
+    <link rel="apple-touch-icon" href="/icon-512.png" sizes="512x512" />
+    
+    <!-- Splash screens for iOS -->
+    <link rel="apple-touch-startup-image" href="/icon-512.png" />
 
     <title>Controle de Cartões Emprestados</title>
+    
+    <!-- SQL.js WebAssembly Module -->
+    <script src="/sql.js/sql-wasm.js" defer></script>
   </head>
   <body>
     <div id="root"></div>
