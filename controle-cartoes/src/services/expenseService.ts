@@ -30,12 +30,18 @@ class ExpenseService {
   }
 
   async createGasto(gastoData: GastoFormData): Promise<Gasto> {
+    // Remove both camelCase and snake_case from the spread, then set snake_case explicitly
+    const { metodoPagamento, metodo_pagamento, ...rest } = gastoData as any;
+    const metodoFinal = metodoPagamento || metodo_pagamento || '';
+    if (!metodoFinal) {
+      throw new Error('O campo "Método de Pagamento" é obrigatório para criar um gasto.');
+    }
     const gasto = {
       id: generateUUID(),
-      ...gastoData,
+      ...rest,
+      metodo_pagamento: metodoFinal,
       data: gastoData.data || new Date().toISOString().split('T')[0]
     };
-
     return unifiedDatabaseService.createGasto(gasto);
   }
 
@@ -105,18 +111,23 @@ class ExpenseService {
     for (const recorrencia of activeRecorrencias) {
       const shouldCreateTransaction = this.shouldCreateRecurringTransaction(recorrencia, today);
       if (shouldCreateTransaction) {
+        if (!recorrencia.metodoPagamento) {
+          throw new Error(
+            `A recorrência "${recorrencia.descricao}" está sem método de pagamento. Edite a recorrência para corrigir e evitar erros ao criar o gasto.`
+          );
+        }
         const newGasto: Gasto = {
           id: generateUUID(),
           descricao: `[Recorrente] ${recorrencia.descricao}`,
           valor: recorrencia.valor,
           data: nowIso.split('T')[0],
           categoria: recorrencia.categoria,
-          metodoPagamento: recorrencia.metodoPagamento,
+          metodo_pagamento: recorrencia.metodoPagamento, // snake_case for backend
           observacoes: `Gerado automaticamente de recorrência: ${recorrencia.descricao}`,
           recorrenteId: recorrencia.id,
           createdAt: nowIso,
           updatedAt: nowIso,
-        };
+        } as any; // Cast to any to allow snake_case
         await this.createGasto(newGasto);
         newGastos.push(newGasto);
         await unifiedDatabaseService.updateRecorrencia({
@@ -299,6 +310,97 @@ class ExpenseService {
         console.warn('Failed to import recorrencia:', recorrencia.descricao, error);
       }
     }
+  }
+
+  // === RECURRING TRANSACTION LOGIC REWORK ===
+
+  /**
+   * Returns all active recorrencias that are due (should have a Gasto for the current period, but don't).
+   * This does NOT create Gastos automatically.
+   */
+  async getPendingRecorrencias(): Promise<Array<{ recorrencia: Recorrencia; dueDate: string }>> {
+    const recorrencias = await this.getAllRecorrencias();
+    const activeRecorrencias = recorrencias.filter(r => r.ativo);
+    const pending: Array<{ recorrencia: Recorrencia; dueDate: string }> = [];
+    const today = new Date();
+
+    for (const recorrencia of activeRecorrencias) {
+      // Calculate the next expected due date
+      const dueDate = this.getNextDueDate(recorrencia);
+      if (!dueDate) continue;
+
+      // Check if a Gasto already exists for this recorrencia and dueDate
+      const allGastos = await this.getAllGastos();
+      const alreadyPaid = allGastos.some(g => g.recorrenteId === recorrencia.id && g.data === dueDate);
+      if (!alreadyPaid && new Date(dueDate) <= today) {
+        pending.push({ recorrencia, dueDate });
+      }
+    }
+    return pending;
+  }
+
+  /**
+   * Helper to calculate the next due date for a recorrencia, based on frequency and last execution.
+   * Returns a string in YYYY-MM-DD format, or null if not due yet.
+   */
+  getNextDueDate(recorrencia: Recorrencia): string | null {
+    const freq = recorrencia.frequencia?.toLowerCase();
+    const start = recorrencia.dataInicio ? new Date(recorrencia.dataInicio) : new Date();
+    const last = recorrencia.ultimaExecucao ? new Date(recorrencia.ultimaExecucao) : null;
+    let next: Date;
+    if (!last) {
+      next = start;
+    } else {
+      next = new Date(last);
+      switch (freq) {
+        case 'diario': next.setDate(next.getDate() + 1); break;
+        case 'semanal': next.setDate(next.getDate() + 7); break;
+        case 'mensal': next.setMonth(next.getMonth() + 1); break;
+        case 'bimestral': next.setMonth(next.getMonth() + 2); break;
+        case 'trimestral': next.setMonth(next.getMonth() + 3); break;
+        case 'semestral': next.setMonth(next.getMonth() + 6); break;
+        case 'anual': next.setFullYear(next.getFullYear() + 1); break;
+        default: return null;
+      }
+    }
+    // Return as YYYY-MM-DD
+    return next.toISOString().split('T')[0];
+  }
+
+  /**
+   * Mark a recorrencia as paid for a given due date. Creates a Gasto and updates ultimaExecucao.
+   * Returns the created Gasto.
+   */
+  async payRecorrencia(recorrenciaId: string, paidDate: string): Promise<Gasto> {
+    const recorrencia = await this.getRecorrenciaById(recorrenciaId);
+    if (!recorrencia) throw new Error('Recorrência não encontrada');
+    if (!recorrencia.metodoPagamento) {
+      throw new Error(
+        `A recorrência "${recorrencia.descricao}" está sem método de pagamento. Edite a recorrência para corrigir e evitar erros ao marcar como paga.`
+      );
+    }
+    // Check if already paid
+    const allGastos = await this.getAllGastos();
+    const alreadyPaid = allGastos.some(g => g.recorrenteId === recorrenciaId && g.data === paidDate);
+    if (alreadyPaid) throw new Error('Esta recorrência já foi paga para esta data');
+    // Create the gasto
+    const now = new Date().toISOString();
+    const gasto: Gasto = {
+      id: generateUUID(),
+      descricao: `[Recorrente] ${recorrencia.descricao}`,
+      valor: recorrencia.valor,
+      data: paidDate,
+      categoria: recorrencia.categoria,
+      metodo_pagamento: recorrencia.metodoPagamento, // snake_case for backend
+      observacoes: `Gerado automaticamente de recorrência: ${recorrencia.descricao}`,
+      recorrenteId: recorrencia.id,
+      createdAt: now,
+      updatedAt: now,
+    } as any; // Cast to any to allow snake_case
+    await unifiedDatabaseService.createGasto(gasto);
+    // Update ultimaExecucao
+    await unifiedDatabaseService.updateRecorrencia({ ...recorrencia, ultimaExecucao: paidDate });
+    return gasto;
   }
 }
 

@@ -29,6 +29,33 @@ interface SimpleChartProps {
 }
 
 const SimpleChart: React.FC<SimpleChartProps> = ({ data, title, subtitle }) => {
+  // Handle empty data gracefully
+  if (!data || data.length === 0) {
+    return (
+      <div className="w-full">
+        <div className="mb-4">
+          {title && (
+            <div className="space-y-1">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                {title}
+              </h3>
+              {subtitle && (
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  {subtitle}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+        <div className="text-center py-8">
+          <p className="text-gray-500 dark:text-gray-400">
+            Nenhum dado disponível
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   const maxValue = Math.max(...data.map(item => item.value));
   
   return (
@@ -63,7 +90,7 @@ const SimpleChart: React.FC<SimpleChartProps> = ({ data, title, subtitle }) => {
                 className="h-2 rounded-full transition-all duration-300"
                 style={{
                   backgroundColor: item.color || '#3B82F6',
-                  width: `${(item.value / maxValue) * 100}%`,
+                  width: `${maxValue > 0 ? (item.value / maxValue) * 100 : 0}%`,
                 }}
               />
             </div>
@@ -131,11 +158,34 @@ export default function Analytics() {
   useEffect(() => {
     const loadExpenseData = async () => {
       try {
-        const analytics = await expenseService.getExpenseSummary();
-        setExpenseData(analytics as unknown as ExpenseData || {
-          gastosPorCategoria: [],
-          gastosPorFormaPagamento: [],
-          proximasRecorrencias: []
+        const [analytics, recurringData] = await Promise.all([
+          expenseService.getExpenseSummary(),
+          expenseService.getRecurringTransactionsSummary()
+        ]);
+        
+        // Transform the Record<string, number> data to array format expected by the component
+        const gastosPorCategoria = Object.entries(analytics.gastosPorCategoria || {}).map(([categoria, total]) => ({
+          categoria,
+          total,
+          count: 1 // We don't have count info from the summary, so default to 1
+        }));
+
+        const gastosPorFormaPagamento = Object.entries(analytics.gastosPorMetodo || {}).map(([forma, total]) => ({
+          forma,
+          total,
+          count: 1 // We don't have count info from the summary, so default to 1
+        }));
+
+        setExpenseData({
+          gastosPorCategoria,
+          gastosPorFormaPagamento,
+          proximasRecorrencias: [], // TODO: Implement recurring transactions data
+          summary: {
+            gastosMes: analytics.gastosMes || 0,
+            mediaDiaria: analytics.mediaGastosDiario || 0,
+            totalGastos: analytics.totalGastos || 0,
+            recorrenciasAtivas: recurringData.activeTransactions || 0
+          }
         });
       } catch (error) {
         console.error('Erro ao carregar dados de gastos:', error);

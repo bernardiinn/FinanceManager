@@ -52,16 +52,7 @@ const Gastos: React.FC = () => {
     try {
       setLoading(true);
       
-      // Process recurring transactions first
-      const newRecurringGastos = await expenseService.processRecurringTransactions();
-      if (newRecurringGastos.length > 0) {
-        addToast({
-          type: 'success',
-          title: 'Transações Recorrentes',
-          message: `${newRecurringGastos.length} nova(s) transação(ões) gerada(s) automaticamente.`,
-        });
-      }
-      
+      // Load gastos directly without automatic processing
       const allGastos = await expenseService.getAllGastos();
       const monthlyStats = await expenseService.getMonthlyExpenseSummary();
       

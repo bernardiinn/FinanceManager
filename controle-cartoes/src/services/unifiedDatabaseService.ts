@@ -11,7 +11,7 @@ import { backendDataService } from './backendDataService';
 /**
  * Unified Database Service - Single source of truth for all app data
  * 
- * Routes all data operations through the backend API with proper user isolation.
+ * Routes all data operations through the      throw new Error('Campo obrigatório faltando: frequencia');ackend API with proper user isolation.
  * No localStorage or local SQLite usage - fully backend-driven.
  */
 
@@ -274,18 +274,22 @@ class UnifiedDatabaseService {
 
   async createGasto(gasto: any): Promise<any> {
     await this.ensureInitialized();
-    
     const backendGasto = await backendDataService.createGasto({
       descricao: gasto.descricao,
       valor: gasto.valor,
       data: gasto.data,
       categoria: gasto.categoria,
-      metodoPagamento: gasto.metodoPagamento,
+      // Defensive: support both camelCase and snake_case, and throw if missing
+      metodo_pagamento: gasto.metodo_pagamento || gasto.metodoPagamento,
       observacoes: gasto.observacoes,
-      recorrenteId: gasto.recorrenteId,
+      recorrente_id: gasto.recorrente_id || gasto.recorrenteId,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     } as any);
+    // Defensive: throw if required fields are missing (check input, not backendGasto)
+    if (!gasto.descricao || !gasto.valor || !gasto.data || !gasto.categoria || !(gasto.metodo_pagamento || gasto.metodoPagamento)) {
+      throw new Error('ID, descricao, valor, data, categoria, and metodo_pagamento are required');
+    }
     
     // Transform back to frontend format
     return {
@@ -403,19 +407,27 @@ class UnifiedDatabaseService {
 
   async updateRecorrencia(recorrencia: any): Promise<void> {
     await this.ensureInitialized();
-    
-    await backendDataService.updateRecorrencia({
+    const frequencia = recorrencia.frequencia || recorrencia.frequency;
+    if (!frequencia) {
+      console.error('[updateRecorrencia] Missing required field: frequencia', recorrencia);
+      throw new Error('Campo obrigat3rio faltando: frequencia');
+    }
+    const payload = {
       id: recorrencia.id,
       descricao: recorrencia.descricao,
       valor: recorrencia.valor,
       categoria: recorrencia.categoria,
-      metodoPagamento: recorrencia.metodoPagamento,
-      frequencia: recorrencia.frequencia,
-      dataInicio: recorrencia.dataInicio,
-      ativo: recorrencia.ativo,
+      metodo_pagamento: recorrencia.metodo_pagamento || recorrencia.metodoPagamento,
+      frequencia,
+      data_inicio: recorrencia.data_inicio || recorrencia.dataInicio,
+      ultima_execucao: recorrencia.ultima_execucao || recorrencia.ultimaExecucao || null,
+      ativo: typeof recorrencia.ativo === 'boolean' ? recorrencia.ativo : Boolean(recorrencia.ativo),
+      observacoes: recorrencia.observacoes,
       createdAt: recorrencia.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-    } as any);
+    } as any;
+    
+    await backendDataService.updateRecorrencia(payload);
   }
 
   async deleteRecorrencia(id: string): Promise<void> {

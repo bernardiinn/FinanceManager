@@ -4,13 +4,18 @@
   "description": "Gerencie cartões emprestados de forma simples e eficiente",
   "start_url": "/",
   "display": "standalone",
-  "orientation": "portrait",
+  "orientation": "portrait-primary",
   "theme_color": "#3b82f6",
   "background_color": "#ffffff",
   "categories": ["finance", "productivity", "utilities"],
   "lang": "pt-BR",
   "dir": "ltr",
   "scope": "/",
+  "prefer_related_applications": false,
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "edge_side_panel": {
+    "preferred_width": 480
+  },
   "icons": [
     {
       "src": "icon-192.png",
@@ -35,6 +40,14 @@
       "sizes": "1024x1024",
       "type": "image/png",
       "purpose": "any"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "narrow"
     }
   ]
 }

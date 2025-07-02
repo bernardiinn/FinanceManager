@@ -43,17 +43,19 @@ export const PageLayout: React.FC<PageLayoutProps> = ({
 }) => {
   return (
     <div className={`
-      min-h-screen bg-gray-50 dark:bg-gray-900 
-      pb-[env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)]
+      min-h-[100dvh] bg-gray-50 dark:bg-gray-900 
+      ios-safe-area iphone-container
       ${className}
     `}>
       {/* Mobile-first container with responsive max-width */}
-      <div className="w-full max-w-screen-md mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="w-full max-w-screen-md mx-auto mobile-container">
         
         {/* Header Section */}
-        <header className="py-4 sm:py-6">
+        <header className="py-4 sm:py-6" style={{
+          paddingTop: 'max(1rem, calc(var(--safe-area-inset-top) + 1rem))'
+        }}>
           <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-1 min-w-0">
               {backTo && (
                 <Link 
                   to={backTo}
@@ -62,26 +64,27 @@ export const PageLayout: React.FC<PageLayoutProps> = ({
                     hover:shadow-md transition-shadow duration-200
                     border border-gray-200 dark:border-gray-700
                     focus:outline-none focus:ring-2 focus:ring-blue-500
+                    touch-manipulation shrink-0
                   "
                 >
                   <ArrowLeft size={20} className="text-gray-600 dark:text-gray-300" />
                 </Link>
               )}
               
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 min-w-0 flex-1">
                 {icon && (
-                  <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                  <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg shrink-0">
                     <div className="text-blue-600 dark:text-blue-400">
                       {icon}
                     </div>
                   </div>
                 )}
-                <div>
-                  <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white leading-tight">
+                <div className="min-w-0 flex-1">
+                  <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white leading-tight truncate">
                     {title}
                   </h1>
                   {subtitle && (
-                    <p className="text-gray-600 dark:text-gray-400 mt-1 text-sm sm:text-base">
+                    <p className="text-gray-600 dark:text-gray-400 mt-1 text-sm sm:text-base line-clamp-2">
                       {subtitle}
                     </p>
                   )}
@@ -90,7 +93,7 @@ export const PageLayout: React.FC<PageLayoutProps> = ({
             </div>
             
             {actions && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 shrink-0 ml-2">
                 {actions}
               </div>
             )}

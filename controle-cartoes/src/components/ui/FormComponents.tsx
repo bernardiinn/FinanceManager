@@ -137,11 +137,12 @@ export const TextInput = forwardRef<HTMLInputElement, TextInputProps>(
     const inputType = type === 'password' && showPassword ? 'text' : type;
 
     const baseClasses = `
-      w-full py-3 rounded-lg border transition-all duration-200 ease-in-out text-sm
+      w-full py-3 rounded-lg border transition-all duration-200 ease-in-out
       placeholder-gray-500 dark:placeholder-gray-400
       focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
       disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed disabled:opacity-50
       bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-white
+      min-h-[48px] text-base touch-manipulation
       ${icon ? 'pl-10 pr-4' : 'px-4'}
       ${type === 'password' ? 'pr-12' : ''}
     `;
@@ -186,6 +187,12 @@ export const TextInput = forwardRef<HTMLInputElement, TextInputProps>(
             autoComplete={autoComplete}
             inputMode={inputMode}
             className={`${baseClasses} ${stateClasses}`}
+            style={{
+              fontSize: '16px', // Prevent iOS zoom
+              WebkitAppearance: 'none',
+              MozAppearance: 'none',
+              appearance: 'none'
+            }}
             aria-invalid={!!error}
           />
 
@@ -193,7 +200,7 @@ export const TextInput = forwardRef<HTMLInputElement, TextInputProps>(
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-3 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 focus:outline-none focus:text-blue-500 transition-colors"
+              className="absolute right-3 top-3 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 focus:outline-none focus:text-blue-500 transition-colors touch-manipulation p-1"
               aria-label={showPassword ? 'Hide password' : 'Show password'}
               tabIndex={-1}
             >
@@ -302,7 +309,8 @@ export const PrimaryButton: React.FC<PrimaryButtonProps> = ({
     inline-flex items-center justify-center gap-2 rounded-lg font-medium 
     transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 
     focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed
-    active:transform active:scale-[0.98]
+    active:transform active:scale-[0.98] touch-manipulation
+    min-h-[48px]
   `;
 
   const variantClasses = {
@@ -325,9 +333,9 @@ export const PrimaryButton: React.FC<PrimaryButtonProps> = ({
   };
 
   const sizeClasses = {
-    sm: 'px-3 py-1.5 text-sm',
-    md: 'px-4 py-2.5 text-base',
-    lg: 'px-6 py-3 text-lg'
+    sm: 'px-3 py-2 text-sm min-h-[40px]',
+    md: 'px-4 py-3 text-base min-h-[48px]',
+    lg: 'px-6 py-4 text-lg min-h-[52px]'
   };
 
   const widthClasses = fullWidth ? 'w-full' : '';

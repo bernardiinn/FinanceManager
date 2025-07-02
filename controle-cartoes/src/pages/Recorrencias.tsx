@@ -19,11 +19,15 @@ import { PageLayout, Card, TwoColumnGrid } from '../components/ui/Layout';
 import { PrimaryButton } from '../components/ui/FormComponents';
 import { expenseService } from '../services/expenseService';
 import { useToast } from '../components/Toast';
+import { Dialog } from '../components/ui/Dialog';
+import { Input } from '../components/ui/FormComponents';
 import type { Recorrencia } from '../types';
 
 const Recorrencias: React.FC = () => {
   const [recorrencias, setRecorrencias] = useState<Recorrencia[]>([]);
   const [loading, setLoading] = useState(true);
+  const [payModal, setPayModal] = useState<{ open: boolean, recorrencia: Recorrencia | null }>({ open: false, recorrencia: null });
+  const [payDate, setPayDate] = useState<string>("");
   const { addToast } = useToast();
 
   useEffect(() => {
@@ -96,32 +100,44 @@ const Recorrencias: React.FC = () => {
     }
   };
 
-  const handleProcessRecurring = async () => {
+  const handleMarkAsPaid = (recorrencia: Recorrencia) => {
+    setPayModal({ open: true, recorrencia });
+    setPayDate(new Date().toISOString().split('T')[0]);
+  };
+
+  const handleConfirmPay = async () => {
+    if (!payModal.recorrencia) return;
     try {
-      const newGastos = await expenseService.processRecurringTransactions();
-      
-      if (newGastos.length > 0) {
+      await expenseService.payRecorrencia(payModal.recorrencia.id, payDate);
+      addToast({
+        type: 'success',
+        title: 'Pago',
+        message: 'Pagamento registrado com sucesso.'
+      });
+      // Optimistically update the local recurrence's ultimaExecucao
+      setRecorrencias(prev => prev.map(rec =>
+        rec.id === payModal.recorrencia?.id
+          ? { ...rec, ultimaExecucao: payDate }
+          : rec
+      ));
+      setPayModal({ open: false, recorrencia: null });
+      // Optionally reload from backend in background to ensure sync
+      loadData();
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      if (msg.includes('já foi paga para esta data')) {
         addToast({
-          type: 'success',
-          title: 'Transações Processadas',
-          message: `${newGastos.length} nova(s) transação(ões) gerada(s).`,
+          type: 'info',
+          title: 'Já pago',
+          message: 'Esta recorrência já foi marcada como paga para esta data.'
         });
       } else {
         addToast({
-          type: 'info',
-          title: 'Nenhuma Transação',
-          message: 'Nenhuma nova transação foi gerada.',
+          type: 'error',
+          title: 'Erro',
+          message: 'Erro ao registrar pagamento. ' + msg
         });
       }
-      
-      loadData(); // Reload to update ultimaExecucao
-    } catch (error) {
-      console.error('Error processing recurring transactions:', error);
-      addToast({
-        type: 'error',
-        title: 'Erro',
-        message: 'Erro ao processar transações recorrentes.',
-      });
     }
   };
 
@@ -226,15 +242,6 @@ const Recorrencias: React.FC = () => {
       icon={<RefreshCw size={24} />}
       actions={
         <div className="flex flex-wrap gap-2">
-          <PrimaryButton
-            variant="primary"
-            size="sm"
-            onClick={handleProcessRecurring}
-            icon={<Play size={16} />}
-          >
-            <span className="hidden sm:inline">Processar</span>
-          </PrimaryButton>
-          
           <PrimaryButton
             variant="ghost"
             size="sm"
@@ -348,6 +355,7 @@ const Recorrencias: React.FC = () => {
               {activeRecorrencias.map((recorrencia) => {
                 const statusInfo = getStatusInfo(recorrencia);
                 const nextExecution = getNextExecutionDate(recorrencia);
+                const isPending = statusInfo.status === 'pending';
                 
                 return (
                   <div
@@ -415,6 +423,17 @@ const Recorrencias: React.FC = () => {
                       >
                         <Trash2 size={16} />
                       </PrimaryButton>
+
+                      {isPending && (
+                        <PrimaryButton
+                          variant="primary"
+                          size="sm"
+                          onClick={() => handleMarkAsPaid(recorrencia)}
+                          className="text-green-600 hover:text-green-700"
+                        >
+                          Marcar como pago
+                        </PrimaryButton>
+                      )}
                     </div>
                   </div>
                 );
@@ -502,6 +521,25 @@ const Recorrencias: React.FC = () => {
             </PrimaryButton>
           </Link>
         </div>
+
+        {/* Pay Modal */}
+        <Dialog open={payModal.open} onClose={() => setPayModal({ open: false, recorrencia: null })}>
+          <div className="p-6">
+            <h2 className="text-lg font-semibold mb-2">Marcar como pago</h2>
+            <p className="mb-4">Confirma o pagamento da recorrência <b>{payModal.recorrencia?.descricao}</b>?</p>
+            <label className="block mb-2 text-sm">Data do pagamento</label>
+            <Input
+              type="date"
+              value={payDate}
+              onChange={e => setPayDate(e.target.value)}
+              className="mb-4"
+            />
+            <div className="flex gap-2 justify-end">
+              <PrimaryButton variant="ghost" onClick={() => setPayModal({ open: false, recorrencia: null })}>Cancelar</PrimaryButton>
+              <PrimaryButton variant="primary" onClick={handleConfirmPay}>Confirmar</PrimaryButton>
+            </div>
+          </div>
+        </Dialog>
     </PageLayout>
   );
 };

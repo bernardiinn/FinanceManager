@@ -1,23 +1,16 @@
 /**
  * Database-first Custom Hooks
  * 
- * Replaces localStor  const getNextInstallment = (cartao: Cartao) => {
-    if (!cartao.installments) return null;
-    return cartao.installments.find((inst: Installment) => !inst.isPaid);
-  };
-  
-  const getOverdueInstallmentsCount = (cartao: Cartao) => {
-    if (!cartao.installments) return 0;
-    const today = new Date();
-    return cartao.installments.filter((inst: Installment) => 
-      !inst.isPaid && new Date(inst.dueDate) < today
-    ).length;nt hooks with database-backed implementations
+ * Replaces localStorage hooks with database-backed implementations
  */
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { unifiedDatabaseService } from './services/unifiedDatabaseService';
 import { useDatabaseContext } from './components/DatabaseProvider';
 import type { Cartao, Installment } from './types';
+
+// PWA and iOS compatibility hooks
+export { usePWA, useSafeArea, useViewport, useInstallPrompt } from './hooks/usePWA';
 
 // Database-backed app data hook
 export const useAppData = () => {

@@ -123,10 +123,7 @@ export default function Home() {
     // Load expense and recurring transaction data
     const loadData = async () => {
       try {
-        // Process any pending recurring transactions
-        await expenseService.processRecurringTransactions();
-        
-        // Get summaries
+        // Get summaries without automatic processing
         const expenseData = await expenseService.getExpenseSummary();
         const recurringData = await expenseService.getAllRecorrencias();
         

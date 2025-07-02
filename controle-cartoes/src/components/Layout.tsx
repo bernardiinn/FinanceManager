@@ -53,15 +53,15 @@ const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <header className="sticky top-0 z-40 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 shadow-sm">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+    <header className="sticky top-0 z-40 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 shadow-sm pwa-header">
+      <div className="max-w-7xl mx-auto mobile-header">
+        <div className="flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8">
           {/* Left side */}
           <div className="flex items-center gap-4">
             {showMenuButton && (
               <button
                 onClick={onMenuToggle}
-                className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 lg:hidden"
+                className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 lg:hidden touch-manipulation"
                 aria-label="Toggle menu"
               >
                 <Menu size={20} />
@@ -72,7 +72,7 @@ const Header: React.FC<HeaderProps> = ({
               <div className="p-2 bg-blue-600 rounded-lg">
                 <CreditCard className="h-6 w-6 text-white" />
               </div>
-              <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 hidden sm:block">
+              <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 hidden sm:block truncate">
                 {title}
               </h1>
             </div>
@@ -85,7 +85,7 @@ const Header: React.FC<HeaderProps> = ({
             {isAuthenticated && (
               <button
                 onClick={handleLogout}
-                className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200"
+                className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200 touch-manipulation"
                 aria-label="Logout"
                 title="Fazer Logout"
               >
@@ -95,7 +95,7 @@ const Header: React.FC<HeaderProps> = ({
             
             <button
               onClick={toggleTheme}
-              className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200"
+              className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200 touch-manipulation"
               aria-label={theme.isLight ? 'Switch to dark mode' : 'Switch to light mode'}
             >
               {theme.isLight ? <Moon size={20} /> : <Sun size={20} />}
@@ -129,8 +129,13 @@ const Sidebar: React.FC<SidebarProps> = ({
           fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 
           transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0
           ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+          ios-safe-area
           ${className}
         `}
+        style={{
+          paddingTop: 'max(var(--safe-area-inset-top), 0px)',
+          paddingBottom: 'max(var(--safe-area-inset-bottom), 0px)'
+        }}
       >
         {/* Sidebar header */}
         <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200 dark:border-gray-700 lg:hidden">
@@ -138,13 +143,13 @@ const Sidebar: React.FC<SidebarProps> = ({
             <div className="p-2 bg-blue-600 rounded-lg">
               <CreditCard className="h-5 w-5 text-white" />
             </div>
-            <span className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            <span className="text-lg font-semibold text-gray-900 dark:text-gray-100 truncate">
               Controle de Cartões
             </span>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+            className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 touch-manipulation"
             aria-label="Close menu"
           >
             <X size={20} />
@@ -152,7 +157,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* Navigation */}
-        <div className="p-4 space-y-2">
+        <div className="p-4 space-y-2 overflow-y-auto" style={{maxHeight: 'calc(100vh - 4rem)'}}>
           <Navigation onItemClick={onClose} />
         </div>
       </aside>
@@ -179,7 +184,7 @@ export const Layout: React.FC<LayoutProps> = ({
   };
 
   return (
-    <div className={`min-h-screen bg-gray-50 dark:bg-gray-900 ${className}`}>
+    <div className={`min-h-[100dvh] bg-gray-50 dark:bg-gray-900 iphone-container ${className}`}>
       {/* Header */}
       <Header
         title={title}
@@ -191,8 +196,8 @@ export const Layout: React.FC<LayoutProps> = ({
       <div className="flex">
         {/* Sidebar for desktop */}
         {showNavigation && isDesktop && (
-          <aside className="w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 min-h-[calc(100vh-4rem)]">
-            <div className="p-4 space-y-2">
+          <aside className="w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 min-h-[calc(100dvh-4rem)]">
+            <div className="p-4 space-y-2 overflow-y-auto" style={{maxHeight: 'calc(100vh - 4rem)'}}>
               <Navigation />
             </div>
           </aside>
@@ -208,13 +213,18 @@ export const Layout: React.FC<LayoutProps> = ({
 
         {/* Main content */}
         <main className="flex-1 min-w-0">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-            {children}
+          <div className="max-w-7xl mx-auto mobile-container">
+            <div className="px-4 sm:px-6 lg:px-8 py-6">
+              {children}
+            </div>
           </div>
           
           {/* Deployment Status Footer */}
           {process.env.NODE_ENV === 'development' && (
-            <div className="fixed bottom-4 right-4 z-50">
+            <div className="fixed pwa-fixed-bottom pwa-fixed-right z-50" style={{
+              bottom: 'max(1rem, var(--safe-area-inset-bottom))',
+              right: 'max(1rem, var(--safe-area-inset-right))'
+            }}>
               <div className="bg-blue-600 text-white px-3 py-2 rounded-lg shadow-lg text-xs font-medium">
                 ⚙️ Dev Mode – VM External Access Enabled
                 <div className="text-blue-200 text-xs">
