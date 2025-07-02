@@ -12,6 +12,7 @@ import { DatabaseProvider } from './components/DatabaseProvider';
 import AuthGuard from './components/AuthGuard';
 import AuthRedirect from './components/AuthRedirect';
 import { useSession } from './hooks/useSession';
+import { initializePWA, handleOrientationChange } from './utils/pwaUtils';
 
 // Redirect component for legacy URLs
 function RedirectToPessoa() {
@@ -55,6 +56,15 @@ function AppContent() {
   const [isCheckingProfile, setIsCheckingProfile] = useState(true);
 
   useEffect(() => {
+    // Initialize PWA utilities for iOS compatibility
+    const pwaInfo = initializePWA();
+    const cleanupOrientationHandler = handleOrientationChange();
+    
+    // Log PWA status for debugging
+    if (process.env.NODE_ENV === 'development') {
+      console.log('PWA initialized:', pwaInfo);
+    }
+    
     // Initialize profile check
     const initProfile = async () => {
       try {
@@ -69,6 +79,9 @@ function AppContent() {
     if (!isLoading) {
       initProfile();
     }
+
+    // Cleanup orientation handler on unmount
+    return cleanupOrientationHandler;
   }, [isLoading]);
 
   // Show loading while checking session and profile

@@ -189,46 +189,83 @@ class BackendDataService {
   
   async getGastos(): Promise<Gasto[]> {
     const response = await this.request<Record<string, unknown>>('/data/gastos');
-    return ((response as Record<string, unknown>).gastos as Gasto[]) || [];
+    const gastos = ((response as Record<string, unknown>).gastos as any[]) || [];
+    
+    // Transform snake_case to camelCase
+    return gastos.map(gasto => ({
+      ...gasto,
+      metodoPagamento: gasto.metodo_pagamento,
+      recorrenteId: gasto.recorrente_id,
+      createdAt: gasto.created_at,
+      updatedAt: gasto.updated_at
+    }));
   }
 
   async getGastoById(id: string): Promise<Gasto> {
     const response = await this.request<Record<string, unknown>>(`/data/gastos/${id}`);
-    return (response as Record<string, unknown>).gasto as Gasto;
+    const gasto = (response as Record<string, unknown>).gasto as any;
+    
+    // Transform snake_case to camelCase
+    return {
+      ...gasto,
+      metodoPagamento: gasto.metodo_pagamento,
+      recorrenteId: gasto.recorrente_id,
+      createdAt: gasto.created_at,
+      updatedAt: gasto.updated_at
+    };
   }
 
   async createGasto(gasto: Omit<Gasto, 'id'>): Promise<Gasto> {
     const id = crypto.randomUUID();
-    
+    // Always map camelCase to snake_case for backend
+    const payload: any = {
+      id,
+      descricao: gasto.descricao,
+      valor: gasto.valor,
+      data: gasto.data,
+      categoria: gasto.categoria,
+      metodo_pagamento: (gasto as any).metodo_pagamento || (gasto as any).metodoPagamento,
+      observacoes: gasto.observacoes,
+      recorrente_id: (gasto as any).recorrente_id || (gasto as any).recorrenteId,
+    };
+    // Remove camelCase fields if present
+    delete payload.metodoPagamento;
+    delete payload.recorrenteId;
+
     const response = await this.request<Record<string, unknown>>('/data/gastos', {
       method: 'POST',
-      body: JSON.stringify({
-        id,
-        descricao: gasto.descricao,
-        valor: gasto.valor,
-        data: gasto.data,
-        categoria: gasto.categoria,
-        metodo_pagamento: gasto.metodoPagamento,
-        observacoes: gasto.observacoes,
-        recorrente_id: gasto.recorrenteId,
-      }),
+      body: JSON.stringify(payload),
     });
     
-    return (response as Record<string, unknown>).gasto as Gasto;
+    const gastoResponse = (response as Record<string, unknown>).gasto as any;
+    
+    // Transform snake_case to camelCase
+    return {
+      ...gastoResponse,
+      metodoPagamento: gastoResponse.metodo_pagamento,
+      recorrenteId: gastoResponse.recorrente_id,
+      createdAt: gastoResponse.created_at,
+      updatedAt: gastoResponse.updated_at
+    };
   }
 
   async updateGasto(gasto: Gasto): Promise<void> {
+    // Always map camelCase to snake_case for backend
+    const payload: any = {
+      descricao: gasto.descricao,
+      valor: gasto.valor,
+      data: gasto.data,
+      categoria: gasto.categoria,
+      metodo_pagamento: (gasto as any).metodo_pagamento || (gasto as any).metodoPagamento,
+      observacoes: gasto.observacoes,
+      recorrente_id: (gasto as any).recorrente_id || (gasto as any).recorrenteId,
+    };
+    delete payload.metodoPagamento;
+    delete payload.recorrenteId;
+
     await this.request(`/data/gastos/${gasto.id}`, {
       method: 'PUT',
-      body: JSON.stringify({
-        descricao: gasto.descricao,
-        valor: gasto.valor,
-        data: gasto.data,
-        categoria: gasto.categoria,
-        metodo_pagamento: gasto.metodoPagamento,
-        observacoes: gasto.observacoes,
-        recorrente_id: gasto.recorrenteId,
-      }),
+      body: JSON.stringify(payload),
     });
   }
 
@@ -242,12 +279,34 @@ class BackendDataService {
   
   async getRecorrencias(): Promise<Recorrencia[]> {
     const response = await this.request<Record<string, unknown>>('/data/recorrencias');
-    return ((response as Record<string, unknown>).recorrencias as Recorrencia[]) || [];
+    const recorrencias = ((response as Record<string, unknown>).recorrencias as any[]) || [];
+    
+    // Transform snake_case to camelCase
+    return recorrencias.map(recorrencia => ({
+      ...recorrencia,
+      metodoPagamento: recorrencia.metodo_pagamento,
+      dataInicio: recorrencia.data_inicio,
+      dataFim: recorrencia.data_fim,
+      ultimaExecucao: recorrencia.ultima_execucao,
+      createdAt: recorrencia.created_at,
+      updatedAt: recorrencia.updated_at
+    }));
   }
 
   async getRecorrenciaById(id: string): Promise<Recorrencia> {
     const response = await this.request<Record<string, unknown>>(`/data/recorrencias/${id}`);
-    return (response as Record<string, unknown>).recorrencia as Recorrencia;
+    const recorrencia = (response as Record<string, unknown>).recorrencia as any;
+    
+    // Transform snake_case to camelCase
+    return {
+      ...recorrencia,
+      metodoPagamento: recorrencia.metodo_pagamento,
+      dataInicio: recorrencia.data_inicio,
+      dataFim: recorrencia.data_fim,
+      ultimaExecucao: recorrencia.ultima_execucao,
+      createdAt: recorrencia.created_at,
+      updatedAt: recorrencia.updated_at
+    };
   }
 
   async createRecorrencia(recorrencia: Omit<Recorrencia, 'id'>): Promise<Recorrencia> {
@@ -267,20 +326,33 @@ class BackendDataService {
       }),
     });
     
-    return (response as Record<string, unknown>).recorrencia as Recorrencia;
+    const recorrenciaResponse = (response as Record<string, unknown>).recorrencia as any;
+    
+    // Transform snake_case to camelCase
+    return {
+      ...recorrenciaResponse,
+      metodoPagamento: recorrenciaResponse.metodo_pagamento,
+      dataInicio: recorrenciaResponse.data_inicio,
+      dataFim: recorrenciaResponse.data_fim,
+      ultimaExecucao: recorrenciaResponse.ultima_execucao,
+      createdAt: recorrenciaResponse.created_at,
+      updatedAt: recorrenciaResponse.updated_at
+    };
   }
 
-  async updateRecorrencia(recorrencia: Recorrencia): Promise<void> {
+  async updateRecorrencia(recorrencia: any): Promise<void> {
     await this.request(`/data/recorrencias/${recorrencia.id}`, {
       method: 'PUT',
       body: JSON.stringify({
         descricao: recorrencia.descricao,
         valor: recorrencia.valor,
         categoria: recorrencia.categoria,
-        metodo_pagamento: recorrencia.metodoPagamento,
+        metodo_pagamento: recorrencia.metodo_pagamento || recorrencia.metodoPagamento,
         frequencia: recorrencia.frequencia,
-        data_inicio: recorrencia.dataInicio,
+        data_inicio: recorrencia.data_inicio || recorrencia.dataInicio,
+        ultima_execucao: recorrencia.ultima_execucao || recorrencia.ultimaExecucao,
         ativo: recorrencia.ativo,
+        observacoes: recorrencia.observacoes,
       }),
     });
   }
