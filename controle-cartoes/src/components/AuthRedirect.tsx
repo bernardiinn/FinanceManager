@@ -7,7 +7,7 @@ interface AuthRedirectProps {
 }
 
 export default function AuthRedirect({ children }: AuthRedirectProps) {
-  const { isAuthenticated, isLoading, user } = useSession();
+  const { isAuthenticated, isLoading } = useSession();
   const location = useLocation();
 
   // Debug log
@@ -26,7 +26,7 @@ export default function AuthRedirect({ children }: AuthRedirectProps) {
 
   // If user is authenticated, redirect to home or the page they came from
   if (isAuthenticated) {
-    const from = (location.state as any)?.from?.pathname || '/';
+    const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/';
     return <Navigate to={from} replace />;
   }
 

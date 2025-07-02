@@ -10,8 +10,9 @@
  */
 
 import React, { useState } from 'react';
-import { Sun, Moon, Menu, X, CreditCard } from 'lucide-react';
+import { Sun, Moon, Menu, X, CreditCard, LogOut } from 'lucide-react';
 import { useTheme, useMediaQuery } from '../hooks';
+import { useSession } from '../hooks/useSession';
 import type { BaseComponentProps } from '../types';
 import Navigation from './Navigation';
 
@@ -42,6 +43,14 @@ const Header: React.FC<HeaderProps> = ({
   actions,
 }) => {
   const { theme, toggleTheme } = useTheme();
+  const { isAuthenticated, logout } = useSession();
+
+  const handleLogout = async () => {
+    if (window.confirm('Tem certeza que deseja fazer logout?')) {
+      await logout();
+      window.location.href = '/login';
+    }
+  };
 
   return (
     <header className="sticky top-0 z-40 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 shadow-sm">
@@ -72,6 +81,17 @@ const Header: React.FC<HeaderProps> = ({
           {/* Right side */}
           <div className="flex items-center gap-2">
             {actions}
+            
+            {isAuthenticated && (
+              <button
+                onClick={handleLogout}
+                className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200"
+                aria-label="Logout"
+                title="Fazer Logout"
+              >
+                <LogOut size={20} />
+              </button>
+            )}
             
             <button
               onClick={toggleTheme}

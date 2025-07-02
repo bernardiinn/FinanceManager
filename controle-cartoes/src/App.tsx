@@ -2,8 +2,8 @@
  * Main Application Component with authentication and user profile support
  */
 
-import React, { useState, useEffect } from 'react';
-import { Routes, Route, Navigate, useParams } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Routes, Route, Navigate, useParams, useLocation } from 'react-router-dom';
 import Layout from './components/Layout';
 import Navigation from './components/Navigation';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -11,7 +11,6 @@ import { ToastProvider } from './components/Toast';
 import { DatabaseProvider } from './components/DatabaseProvider';
 import AuthGuard from './components/AuthGuard';
 import AuthRedirect from './components/AuthRedirect';
-import { unifiedDatabaseService } from './services/unifiedDatabaseService';
 import { useSession } from './hooks/useSession';
 
 // Redirect component for legacy URLs
@@ -52,7 +51,7 @@ import './App.css';
 
 // Main App Component
 function AppContent() {
-  const { isAuthenticated, isLoading } = useSession();
+  const { isLoading } = useSession();
   const [isCheckingProfile, setIsCheckingProfile] = useState(true);
 
   useEffect(() => {
@@ -154,8 +153,10 @@ function AppContent() {
 }
 
 function App() {
+  const location = useLocation();
+  
   return (
-    <ErrorBoundary>
+    <ErrorBoundary resetKey={location.pathname}>
       <ToastProvider>
         <AppContent />
       </ToastProvider>

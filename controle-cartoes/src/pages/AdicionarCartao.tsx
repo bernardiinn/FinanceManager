@@ -224,7 +224,7 @@ export default function AdicionarCartao() {
         data_compra: formData.data_compra
       };
 
-      const cartaoAdicionado = await addCartao(formData.pessoa_id, novoCartao);
+      const cartaoAdicionado = await addCartao(formData.pessoa_id, novoCartao as unknown as Parameters<typeof addCartao>[1]);
       
       addToast({ type: 'success', title: 'Cartão adicionado com sucesso!' });
 
@@ -233,7 +233,7 @@ export default function AdicionarCartao() {
         navigate(`/cartoes/${cartaoAdicionado.id}`);
       }, 1000);
 
-    } catch (error) {
+    } catch {
       addToast({ type: 'error', title: 'Erro ao adicionar cartão. Tente novamente.' });
     } finally {
       setIsSubmitting(false);
@@ -253,7 +253,7 @@ export default function AdicionarCartao() {
   const selectedPessoa = pessoas.find(p => p.id === formData.pessoa_id);
 
   return (
-    <PageLayout>
+    <PageLayout title='Adicionar Cartão' className="max-w-3xl mx-auto p-6">
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
         <PrimaryButton
@@ -261,8 +261,7 @@ export default function AdicionarCartao() {
           variant="ghost"
           size="sm"
           icon={<ArrowLeft size={16} />}
-          className="!p-2"
-        />
+          className="!p-2" children={undefined}        />
         <div className="flex-1">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
             <CreditCard size={24} />
@@ -432,7 +431,7 @@ export default function AdicionarCartao() {
 
       {/* Loading Overlay */}
       {isSubmitting && (
-        <LoadingOverlay message="Adicionando cartão..." />
+        <LoadingOverlay isVisible message="Adicionando cartão..." />
       )}
     </PageLayout>
   );

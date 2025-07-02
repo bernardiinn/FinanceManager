@@ -1,12 +1,23 @@
 /**
  * Database-first Custom Hooks
  * 
- * Replaces localStorage-dependent hooks with database-backed implementations
+ * Replaces localStor  const getNextInstallment = (cartao: Cartao) => {
+    if (!cartao.installments) return null;
+    return cartao.installments.find((inst: Installment) => !inst.isPaid);
+  };
+  
+  const getOverdueInstallmentsCount = (cartao: Cartao) => {
+    if (!cartao.installments) return 0;
+    const today = new Date();
+    return cartao.installments.filter((inst: Installment) => 
+      !inst.isPaid && new Date(inst.dueDate) < today
+    ).length;nt hooks with database-backed implementations
  */
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { unifiedDatabaseService } from './services/unifiedDatabaseService';
 import { useDatabaseContext } from './components/DatabaseProvider';
+import type { Cartao, Installment } from './types';
 
 // Database-backed app data hook
 export const useAppData = () => {
@@ -27,6 +38,7 @@ export const useAppData = () => {
     deleteCartao: context.deleteCartao,
     getCartaoById: context.getCartaoById,
     markInstallmentAsPaid: context.markInstallmentAsPaid,
+    markInstallmentAsUnpaid: context.markInstallmentAsUnpaid,
     
     // Legacy compatibility
     reloadFromStorage: context.refreshData,
@@ -44,33 +56,34 @@ export const useAppData = () => {
 
 // Payment tracking hook for managing installments
 export const usePaymentTracking = () => {
-  const { markInstallmentAsPaid: dbMarkAsPaid, refreshData } = useAppData();
+  const { markInstallmentAsPaid: dbMarkAsPaid, markInstallmentAsUnpaid: dbMarkAsUnpaid, refreshData } = useAppData();
   
   const markInstallmentAsPaid = async (cartaoId: string, installmentNumber: number) => {
     await dbMarkAsPaid(cartaoId, installmentNumber);
     await refreshData();
   };
   
-  const markInstallmentAsUnpaid = async (_cartaoId: string, _installmentNumber: number) => {
-    console.warn('markInstallmentAsUnpaid not yet implemented');
+  const markInstallmentAsUnpaid = async (cartaoId: string, installmentNumber: number) => {
+    await dbMarkAsUnpaid(cartaoId, installmentNumber);
+    await refreshData();
   };
   
-  const getNextInstallment = (cartao: any) => {
+  const getNextInstallment = (cartao: Cartao) => {
     if (!cartao.installments) return null;
-    return cartao.installments.find((inst: any) => !inst.paid);
+    return cartao.installments.find((inst: Installment) => !inst.isPaid);
   };
   
-  const getOverdueInstallmentsCount = (cartao: any) => {
+  const getOverdueInstallmentsCount = (cartao: Cartao) => {
     if (!cartao.installments) return 0;
     const today = new Date();
-    return cartao.installments.filter((inst: any) => 
-      !inst.paid && new Date(inst.dueDate) < today
+    return cartao.installments.filter((inst: Installment) => 
+      !inst.isPaid && new Date(inst.dueDate) < today
     ).length;
   };
   
-  const getPaymentHistory = (cartao: any) => {
+  const getPaymentHistory = (cartao: Cartao) => {
     if (!cartao.installments) return [];
-    return cartao.installments.filter((inst: any) => inst.paid);
+    return cartao.installments.filter((inst: Installment) => inst.isPaid);
   };
   
   return {
@@ -111,17 +124,17 @@ export const useFinancialSummary = () => {
       if (pessoa.cartoes) {
         pessoa.cartoes.forEach(cartao => {
           if (cartao.installments) {
-            const totalAmount = cartao.installments.reduce((sum: number, inst: any) => sum + inst.amount, 0);
+            const totalAmount = cartao.installments.reduce((sum: number, inst: Installment) => sum + inst.amount, 0);
             const paidAmount = cartao.installments
-              .filter((inst: any) => inst.paid)
-              .reduce((sum: number, inst: any) => sum + inst.amount, 0);
+              .filter((inst: Installment) => inst.isPaid)
+              .reduce((sum: number, inst: Installment) => sum + inst.amount, 0);
             
             totalDebt += totalAmount;
             totalPaid += paidAmount;
             
-            const isPaid = cartao.installments.every((inst: any) => inst.paid);
-            const hasOverdue = cartao.installments.some((inst: any) => 
-              !inst.paid && new Date(inst.dueDate) < today
+            const isPaid = cartao.installments.every((inst: Installment) => inst.isPaid);
+            const hasOverdue = cartao.installments.some((inst: Installment) => 
+              !inst.isPaid && new Date(inst.dueDate) < today
             );
             
             if (isPaid) {
@@ -254,17 +267,17 @@ export const useSettings = () => {
     loadSettings();
   }, []);
 
-  const updateSettings = async (newSettings: any) => {
+  const updateSettings = async (newSettings: Record<string, unknown>) => {
     try {
-      await unifiedDatabaseService.saveSettings(newSettings);
-      setSettings(newSettings);
+      await unifiedDatabaseService.saveSettings(newSettings as unknown as Parameters<typeof unifiedDatabaseService.saveSettings>[0]);
+      setSettings(newSettings as unknown as Parameters<typeof setSettings>[0]);
     } catch (error) {
       console.error('Failed to save settings:', error);
       throw error;
     }
   };
 
-  const updateSetting = async (key: string, value: any) => {
+  const updateSetting = async (key: string, value: unknown) => {
     const newSettings = { ...settings, [key]: value };
     await updateSettings(newSettings);
   };
@@ -310,16 +323,18 @@ export const useBackup = () => {
     }
   };
 
-  const importData = async (data: any) => {
+  const importData = async (data: unknown) => {
     try {
       // Validate data structure
       if (!data || typeof data !== 'object') {
         throw new Error('Invalid data format');
       }
 
+      const typedData = data as Record<string, unknown>;
+
       // Import pessoas
-      if (data.pessoas && Array.isArray(data.pessoas)) {
-        for (const pessoa of data.pessoas) {
+      if (typedData.pessoas && Array.isArray(typedData.pessoas)) {
+        for (const pessoa of typedData.pessoas) {
           try {
             await unifiedDatabaseService.createPessoa(pessoa);
           } catch (error) {
@@ -329,8 +344,8 @@ export const useBackup = () => {
       }
 
       // Import gastos
-      if (data.gastos && Array.isArray(data.gastos)) {
-        for (const gasto of data.gastos) {
+      if (typedData.gastos && Array.isArray(typedData.gastos)) {
+        for (const gasto of typedData.gastos) {
           try {
             await unifiedDatabaseService.createGasto(gasto);
           } catch (error) {
@@ -340,8 +355,8 @@ export const useBackup = () => {
       }
 
       // Import recorrencias
-      if (data.recorrencias && Array.isArray(data.recorrencias)) {
-        for (const recorrencia of data.recorrencias) {
+      if (typedData.recorrencias && Array.isArray(typedData.recorrencias)) {
+        for (const recorrencia of typedData.recorrencias) {
           try {
             await unifiedDatabaseService.createRecorrencia(recorrencia);
           } catch (error) {
@@ -351,8 +366,8 @@ export const useBackup = () => {
       }
 
       // Import settings
-      if (data.settings) {
-        await unifiedDatabaseService.saveSettings(data.settings);
+      if (typedData.settings) {
+        await unifiedDatabaseService.saveSettings(typedData.settings as Parameters<typeof unifiedDatabaseService.saveSettings>[0]);
       }
 
       return true;
@@ -415,7 +430,7 @@ export const useDebounce = <T>(value: T, delay: number): T => {
 
 // Previous hook (utility)
 export const usePrevious = <T>(value: T): T | undefined => {
-  const ref = useRef<T>();
+  const ref = useRef<T | undefined>(undefined);
   useEffect(() => {
     ref.current = value;
   });
@@ -480,9 +495,9 @@ export const usePagination = <T>(items: T[], itemsPerPage: number = 10) => {
 };
 
 // Form validation hook
-export const useFormValidation = <T extends Record<string, any>>(
+export const useFormValidation = <T extends Record<string, unknown>>(
   initialValues: T,
-  validationRules: Record<keyof T, (value: any) => string | null>
+  validationRules: Record<keyof T, (value: unknown) => string | null>
 ) => {
   const [values, setValues] = useState<T>(initialValues);
   const [errors, setErrors] = useState<Record<keyof T, string | null>>({} as Record<keyof T, string | null>);
@@ -503,7 +518,7 @@ export const useFormValidation = <T extends Record<string, any>>(
     return !Object.values(newErrors).some(error => error !== null);
   }, [values, errors, validationRules]);
 
-  const setValue = (field: keyof T, value: any) => {
+  const setValue = (field: keyof T, value: unknown) => {
     setValues(prev => ({ ...prev, [field]: value }));
     setTouched(prev => ({ ...prev, [field]: true }));
   };

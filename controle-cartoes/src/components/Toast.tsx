@@ -2,7 +2,7 @@
  * Toast Notification System
  */
 
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
 import { CheckCircle, AlertCircle, AlertTriangle, Info, X } from 'lucide-react';
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info';
@@ -47,11 +47,10 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
 
     setToasts(prev => [...prev, newToast]);
 
-    // Auto-remove toast after duration (unless persistent)
-    if (!newToast.persistent && newToast.duration > 0) {
+    if (!newToast.persistent && (newToast.duration ?? 0) > 0) {
       setTimeout(() => {
         removeToast(id);
-      }, newToast.duration);
+      }, newToast.duration ?? 0);
     }
 
     return id;
@@ -132,6 +131,7 @@ const ToastItem: React.FC<ToastItemProps> = ({ toast, onRemove }) => {
 };
 
 // Hook for using toast in components
+// eslint-disable-next-line react-refresh/only-export-components
 export const useToast = () => {
   const context = useContext(ToastContext);
   if (!context) {
@@ -152,9 +152,10 @@ export const useToast = () => {
 };
 
 // Legacy toast object for backwards compatibility (deprecated)
+// eslint-disable-next-line react-refresh/only-export-components
 export const toast = {
-  success: (_title: string, _message?: string) => console.warn('Use useToast hook instead'),
-  error: (_title: string, _message?: string) => console.warn('Use useToast hook instead'),
-  warning: (_title: string, _message?: string) => console.warn('Use useToast hook instead'),
-  info: (_title: string, _message?: string) => console.warn('Use useToast hook instead'),
+  success: () => console.warn('Use useToast hook instead'),
+  error: () => console.warn('Use useToast hook instead'),
+  warning: () => console.warn('Use useToast hook instead'),
+  info: () => console.warn('Use useToast hook instead'),
 };

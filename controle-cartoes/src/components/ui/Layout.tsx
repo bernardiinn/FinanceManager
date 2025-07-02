@@ -37,7 +37,6 @@ export const PageLayout: React.FC<PageLayoutProps> = ({
   title,
   subtitle,
   backTo,
-  backLabel = 'Voltar',
   icon,
   actions,
   className = ''

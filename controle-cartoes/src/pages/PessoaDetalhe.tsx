@@ -1,7 +1,6 @@
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { 
-  ArrowLeft, 
   Edit3, 
   Plus, 
   CreditCard, 
@@ -16,8 +15,6 @@ import {
   Phone,
   FileText
 } from 'lucide-react';
-import type { Pessoa } from '../types';
-import CartaoCard from '../components/CartaoCard';
 import { PageLayout, Card } from '../components/ui/Layout';
 import { PrimaryButton } from '../components/ui/FormComponents';
 import { Button } from '../components/ui/Button';
@@ -27,16 +24,20 @@ import { financeService } from '../services/financeService';
 export default function PessoaDetalhe() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { pessoas, updatePessoa, deletePessoa, reloadFromStorage } = useAppData();
+  const { pessoas, deletePessoa, reloadFromStorage } = useAppData();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  // Only reload when the component mounts or when the ID changes
-  useEffect(() => {
+  const loadPessoa = useCallback(() => {
     // Only reload if we don't have data or if the specific person is not found
     if (!pessoas || pessoas.length === 0 || !pessoas.find(p => p.id === id)) {
       reloadFromStorage();
     }
-  }, [id]); // Remove reloadFromStorage from dependencies to prevent infinite loop
+  }, [pessoas, id, reloadFromStorage]);
+
+  // Only reload when the component mounts or when the ID changes
+  useEffect(() => {
+    loadPessoa();
+  }, [loadPessoa]);
 
   const pessoa = pessoas.find(p => p.id === id);
 
@@ -70,7 +71,7 @@ export default function PessoaDetalhe() {
   let saldoSummary;
   try {
     saldoSummary = financeService.calcularSaldoPessoa(pessoa);
-  } catch (error) {
+  } catch {
     // Provide fallback values
     saldoSummary = {
       id: pessoa.id,

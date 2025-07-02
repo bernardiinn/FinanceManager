@@ -5,14 +5,13 @@
 
 import { Link } from 'react-router-dom';
 import { useState, useMemo } from 'react';
-import { Plus, Search, Users, TrendingUp, AlertCircle, DollarSign } from 'lucide-react';
-import type { Pessoa } from '../types';
 import PessoaCard from '../components/PessoaCard';
 import { PrimaryButton } from '../components/ui/FormComponents';
 import { PageLayout, Card } from '../components/ui/Layout';
 import Input from '../components/ui/Input';
 import { useAppData } from '../hooks';
 import { financeService } from '../services/financeService';
+import { Plus, Users, Search, DollarSign, AlertCircle } from 'lucide-react';
 
 export default function Pessoas() {
   const { pessoas } = useAppData();

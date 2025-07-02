@@ -4,10 +4,20 @@
  * No localStorage dependencies - all session state is managed server-side
  */
 
+import type { Pessoa, Cartao, Gasto, Recorrencia } from '../types';
+
 interface User {
   id: number;
   email: string;
   name: string;
+}
+
+interface SessionInfo {
+  id: string;
+  expiresAt: string;
+  createdAt: string;
+  lastActivity: string;
+  deviceInfo: string;
 }
 
 interface AuthResponse {
@@ -30,18 +40,18 @@ interface SessionValidationResponse {
 }
 
 interface SyncData {
-  pessoas: any[];
-  cartoes: any[];
-  gastos: any[];
-  recorrencias: any[];
-  settings: any;
+  pessoas: Pessoa[];
+  cartoes: Cartao[];
+  gastos: Gasto[];
+  recorrencias: Recorrencia[];
+  settings: Record<string, unknown>;
 }
 
 class CloudSyncService {
   private apiUrl: string;
   private token: string | null = null;
   private user: User | null = null;
-  private sessionInfo: any = null;
+  private sessionInfo: SessionInfo | null = null;
 
   constructor() {
     this.apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
@@ -50,7 +60,7 @@ class CloudSyncService {
   /**
    * Make authenticated request to API
    */
-  private async request(endpoint: string, options: RequestInit = {}): Promise<any> {
+  private async request<T = unknown>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${this.apiUrl}${endpoint}`;
     
     
@@ -77,7 +87,8 @@ class CloudSyncService {
       return data;
     } catch (fetchError) {
       console.error(`[CloudSyncService] Fetch error:`, fetchError);
-      throw new Error(`Network request failed: ${fetchError.message}`);
+      const message = fetchError instanceof Error ? fetchError.message : 'Unknown error';
+      throw new Error(`Network request failed: ${message}`);
     }
   }
 
@@ -132,7 +143,8 @@ class CloudSyncService {
           method: 'POST',
         });
       }
-    } catch (error) {
+    } catch {
+      // Ignore logout errors
     }
     
     // Clear local state
@@ -160,7 +172,7 @@ class CloudSyncService {
       
       return true;
       
-    } catch (error) {
+    } catch {
       this.token = null;
       this.user = null;
       this.sessionInfo = null;
@@ -172,8 +184,11 @@ class CloudSyncService {
    * Get user profile
    */
   async getProfile(): Promise<User> {
-    const response = await this.request('/auth/profile');
-    this.user = response.user;
+    const response = await this.request<{ user: User }>('/auth/profile');
+    this.user = (response as { user: User }).user;
+    if (!this.user) {
+      throw new Error('Failed to get user profile');
+    }
     return this.user;
   }
 
@@ -238,7 +253,7 @@ class CloudSyncService {
   /**
    * Get session analytics (simplified)
    */
-  getSessionAnalytics(): any {
+  getSessionAnalytics(): Record<string, unknown> {
     if (!this.sessionInfo) {
       return {
         totalSessions: 0,
@@ -271,10 +286,10 @@ class CloudSyncService {
   /**
    * Get user sessions from server
    */
-  async getUserSessions(): Promise<any[]> {
+  async getUserSessions(): Promise<Record<string, unknown>[]> {
     try {
-      const response = await this.request('/auth/sessions');
-      return response.sessions || [];
+      const response = await this.request<{ sessions: Record<string, unknown>[] }>('/auth/sessions');
+      return ((response as { sessions: Record<string, unknown>[] }).sessions) || [];
     } catch (error) {
       console.error('Failed to get user sessions:', error);
       return [];

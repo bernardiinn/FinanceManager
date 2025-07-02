@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+// SQL.js is an external library with limited TypeScript support
+
 /**
  * SQLite Database Service for Controle Cartões
  * 
@@ -145,7 +148,7 @@ class DatabaseService {
     while (stmt.step()) {
       const values = stmt.get();
       const row: any = {};
-      columns.forEach((col, index) => {
+      columns.forEach((col: string, index: number) => {
         row[col] = values[index];
       });
       gastos.push(row);
@@ -164,13 +167,13 @@ class DatabaseService {
     const stmt = this.db.prepare('SELECT * FROM gastos WHERE id = ?');
     stmt.bind([id]);
     
-    let result = null;
+    let result: Record<string, unknown> | null = null;
     if (stmt.step()) {
       const columns = stmt.getColumnNames();
       const values = stmt.get();
       result = {};
-      columns.forEach((col, index) => {
-        result[col] = values[index];
+      columns.forEach((col: string, index: number) => {
+        result![col] = values[index];
       });
     }
     stmt.free();
@@ -260,7 +263,7 @@ class DatabaseService {
     while (stmt.step()) {
       const values = stmt.get();
       const row: any = {};
-      columns.forEach((col, index) => {
+      columns.forEach((col: string, index: number) => {
         row[col] = values[index];
       });
       recorrencias.push(row);
@@ -279,13 +282,13 @@ class DatabaseService {
     const stmt = this.db.prepare('SELECT * FROM recorrencias WHERE id = ?');
     stmt.bind([id]);
     
-    let result = null;
+    let result: Record<string, unknown> | null = null;
     if (stmt.step()) {
       const columns = stmt.getColumnNames();
       const values = stmt.get();
       result = {};
-      columns.forEach((col, index) => {
-        result[col] = values[index];
+      columns.forEach((col: string, index: number) => {
+        result![col] = values[index];
       });
     }
     stmt.free();
@@ -438,7 +441,7 @@ class DatabaseService {
     while (stmt.step()) {
       const values = stmt.get();
       const row: any = {};
-      columns.forEach((col, index) => {
+      columns.forEach((col: string, index: number) => {
         row[col] = values[index];
       });
       profiles.push(row);
@@ -456,13 +459,13 @@ class DatabaseService {
 
     const stmt = this.db.prepare('SELECT * FROM user_profiles WHERE is_active = 1 LIMIT 1');
     
-    let result = null;
+    let result: Record<string, unknown> | null = null;
     if (stmt.step()) {
       const columns = stmt.getColumnNames();
       const values = stmt.get();
       result = {};
-      columns.forEach((col, index) => {
-        result[col] = values[index];
+      columns.forEach((col: string, index: number) => {
+        result![col] = values[index];
       });
     }
     stmt.free();
@@ -532,41 +535,6 @@ class DatabaseService {
     } catch (error) {
       console.warn('⚠️ Failed to load from persistent storage, using memory database:', error);
       this.db = new this.SQL.Database();
-    }
-  }
-
-  /**
-   * Migrate data from legacy localStorage database
-   */
-  private async migrateLegacyData(legacyDb: any): Promise<void> {
-    try {
-      // Get all tables from legacy database
-      const tables = ['pessoas', 'cartoes', 'installments', 'gastos', 'recorrencias', 'settings', 'user_profiles'];
-      
-      for (const table of tables) {
-        try {
-          const stmt = legacyDb.prepare(`SELECT * FROM ${table}`);
-          while (stmt.step()) {
-            const row = stmt.getAsObject();
-            
-            // Insert into new database
-            const columns = Object.keys(row);
-            const placeholders = columns.map(() => '?').join(', ');
-            const values = columns.map(col => row[col]);
-            
-            const insertStmt = this.db.prepare(`
-              INSERT OR REPLACE INTO ${table} (${columns.join(', ')}) 
-              VALUES (${placeholders})
-            `);
-            insertStmt.run(values);
-            insertStmt.free();
-          }
-          stmt.free();
-        } catch (error) {
-        }
-      }
-    } catch (error) {
-      console.warn('⚠️ Legacy data migration failed:', error);
     }
   }
 
@@ -773,7 +741,7 @@ class DatabaseService {
    * Load from IndexedDB instead of localStorage
    */
   private async loadFromIndexedDB(): Promise<Uint8Array | null> {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       const dbName = 'ControleCartoesDB';
       const request = indexedDB.open(dbName, 1);
       
@@ -876,13 +844,13 @@ class DatabaseService {
     const stmt = this.db.prepare('SELECT * FROM pessoas WHERE id = ?');
     stmt.bind([id]);
     
-    let result = null;
+    let result: Record<string, unknown> | null = null;
     if (stmt.step()) {
       const columns = stmt.getColumnNames();
       const values = stmt.get();
       result = {};
-      columns.forEach((col, index) => {
-        result[col] = values[index];
+      columns.forEach((col: string, index: number) => {
+        result![col] = values[index];
       });
     }
     stmt.free();
@@ -923,7 +891,7 @@ class DatabaseService {
     while (stmt.step()) {
       const values = stmt.get();
       const row: any = {};
-      columns.forEach((col, index) => {
+      columns.forEach((col: string, index: number) => {
         row[col] = values[index];
       });
       
@@ -999,7 +967,7 @@ class DatabaseService {
     while (stmt.step()) {
       const values = stmt.get();
       const row: any = {};
-      columns.forEach((col, index) => {
+      columns.forEach((col: string, index: number) => {
         row[col] = values[index];
       });
       
@@ -1123,7 +1091,7 @@ class DatabaseService {
     while (stmt.step()) {
       const values = stmt.get();
       const row: any = {};
-      columns.forEach((col, index) => {
+      columns.forEach((col: string, index: number) => {
         row[col] = values[index];
       });
       installments.push(row);
@@ -1216,12 +1184,12 @@ class DatabaseService {
       LEFT JOIN cartoes c ON p.id = c.pessoa_id
     `);
 
-    let result = {};
+    const result: Record<string, any> = {};
     const columns = stmt.getColumnNames();
     
     if (stmt.step()) {
       const values = stmt.get();
-      columns.forEach((col, index) => {
+      columns.forEach((col: string, index: number) => {
         result[col] = values[index];
       });
     }
@@ -1278,12 +1246,12 @@ class DatabaseService {
 
     stmt.bind([this.dbName, this.userId || 'default']);
     
-    let result = {};
+    const result: Record<string, any> = {};
     const columns = stmt.getColumnNames();
     
     if (stmt.step()) {
       const values = stmt.get();
-      columns.forEach((col, index) => {
+      columns.forEach((col: string, index: number) => {
         result[col] = values[index];
       });
     }
@@ -1349,8 +1317,8 @@ class DatabaseService {
       `SELECT user_id, expires_at, is_active FROM sessions WHERE token_hash = ?`);
     stmt.bind([tokenHash]);
     let userId: string | null = null;
-    let expiresAt: string;
-    let isActive: number;
+    let expiresAt = '';
+    let isActive = 0;
     if (stmt.step()) {
       [userId, expiresAt, isActive] = stmt.get();
     }
@@ -1399,7 +1367,7 @@ class DatabaseService {
     const stmt = this.db.prepare(
       `SELECT token_hash, user_id, expires_at FROM sessions WHERE is_active = 1 AND expires_at > CURRENT_TIMESTAMP ORDER BY last_activity DESC LIMIT 1`
     );
-    let result: { tokenHash: string; userId: string } | null = null;
+    let result: { tokenHash: string; userId: string; expiresAt: string } | null = null;
     if (stmt.step()) {
       const [tokenHash, userId, expiresAt] = stmt.get() as [string, string, string];
       result = { tokenHash, userId, expiresAt };

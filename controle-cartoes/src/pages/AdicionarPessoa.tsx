@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, User, Save, Phone, Mail, FileText } from 'lucide-react';
-import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import Input from '../components/ui/Input';
 import { useAppData } from '../hooks';
@@ -77,7 +76,9 @@ export default function AdicionarPessoa() {
         nome: formData.nome.trim(),
         telefone: formData.telefone.trim() || undefined,
         email: formData.email.trim() || undefined,
-        observacoes: formData.observacoes.trim() || undefined
+        observacoes: formData.observacoes.trim() || undefined,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
       };
 
       // Create new person and await completion
@@ -102,113 +103,120 @@ export default function AdicionarPessoa() {
   };
 
   return (
-    <div className="page">
-      <div className="page-header">
-        <div>
-          <div className="flex items-center gap-3 mb-2">
-            <Link to="/pessoas">
-              <Button variant="ghost" size="sm">
-                <ArrowLeft className="icon-sm" />
-              </Button>
-            </Link>
-            <h1 className="page-title">
-              <User className="icon" />
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-6">
+      <div className="max-w-md mx-auto px-4">
+        {/* Header */}
+        <div className="flex items-center gap-3 mb-6">
+          <Link to="/pessoas">
+            <button className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800">
+              <ArrowLeft size={20} />
+            </button>
+          </Link>
+          <div>
+            <h1 className="text-xl font-bold text-gray-900 dark:text-white">
               Adicionar Pessoa
             </h1>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Cadastre uma nova pessoa
+            </p>
           </div>
-          <p className="page-description">
-            Cadastre uma nova pessoa para emprestar cartões
-          </p>
         </div>
-      </div>
 
-      <form onSubmit={handleSubmit}>
-        <Card>
-          <div className="card-header">
-            <h3>Informações Básicas</h3>
-          </div>
-          <div className="card-body space-y-6">
-            <Input
-              label="Nome *"
-              placeholder="Digite o nome completo"
-              value={formData.nome}
-              onChange={(e) => handleChange('nome', e.target.value)}
-              error={errors.nome}
-              disabled={isSubmitting}
-              startIcon={<User size={16} />}
-              required
-            />
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <Card className="p-6">
+            <div className="space-y-4">
+              <Input
+                label="Nome *"
+                placeholder="Digite o nome completo"
+                value={formData.nome}
+                onChange={(e) => handleChange('nome', e.target.value)}
+                error={errors.nome}
+                disabled={isSubmitting}
+                startIcon={<User size={16} />}
+                required
+              />
 
-            <Input
-              label="Telefone"
-              type="tel"
-              placeholder="(11) 99999-9999"
-              value={formData.telefone}
-              onChange={(e) => handleChange('telefone', e.target.value)}
-              error={errors.telefone}
-              disabled={isSubmitting}
-              startIcon={<Phone size={16} />}
-            />
+              <Input
+                label="Telefone (opcional)"
+                type="tel"
+                placeholder="(11) 99999-9999"
+                value={formData.telefone}
+                onChange={(e) => handleChange('telefone', e.target.value)}
+                error={errors.telefone}
+                disabled={isSubmitting}
+                startIcon={<Phone size={16} />}
+              />
 
-            <Input
-              label="Email"
-              type="email"
-              placeholder="pessoa@exemplo.com"
-              value={formData.email}
-              onChange={(e) => handleChange('email', e.target.value)}
-              error={errors.email}
-              disabled={isSubmitting}
-              startIcon={<Mail size={16} />}
-            />
+              <Input
+                label="Email (opcional)"
+                type="email"
+                placeholder="pessoa@exemplo.com"
+                value={formData.email}
+                onChange={(e) => handleChange('email', e.target.value)}
+                error={errors.email}
+                disabled={isSubmitting}
+                startIcon={<Mail size={16} />}
+              />
 
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Observações
-              </label>
-              <div className="relative">
-                <div className="absolute left-3 top-3 text-gray-400 dark:text-gray-500 pointer-events-none">
-                  <FileText size={16} />
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Observações (opcional)
+                </label>
+                <div className="relative">
+                  <div className="absolute left-3 top-3 text-gray-400 dark:text-gray-500 pointer-events-none">
+                    <FileText size={16} />
+                  </div>
+                  <textarea
+                    placeholder="Informações adicionais (opcional)"
+                    value={formData.observacoes}
+                    onChange={(e) => handleChange('observacoes', e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 resize-none"
+                    rows={3}
+                    disabled={isSubmitting}
+                  />
                 </div>
-                <textarea
-                  placeholder="Informações adicionais (opcional)"
-                  value={formData.observacoes}
-                  onChange={(e) => handleChange('observacoes', e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 resize-none"
-                  rows={3}
-                  disabled={isSubmitting}
-                />
+                {errors.observacoes && (
+                  <p className="text-sm text-red-600 dark:text-red-400">
+                    {errors.observacoes}
+                  </p>
+                )}
               </div>
-              {errors.observacoes && (
-                <p className="text-sm text-red-600 dark:text-red-400">
-                  {errors.observacoes}
-                </p>
+
+              {errors.submit && (
+                <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                  <p className="text-sm text-red-600 dark:text-red-400">{errors.submit}</p>
+                </div>
               )}
             </div>
+          </Card>
 
-            {errors.submit && (
-              <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-                <p className="text-sm text-red-600 dark:text-red-400">{errors.submit}</p>
-              </div>
-            )}
+          {/* Action Buttons */}
+          <div className="flex gap-3 pt-4">
+            <Link to="/pessoas" className="flex-1">
+              <button 
+                type="button"
+                className="w-full py-3 px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50"
+                disabled={isSubmitting}
+              >
+                Cancelar
+              </button>
+            </Link>
+            <button 
+              type="submit"
+              className="flex-1 py-3 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium disabled:opacity-50 flex items-center justify-center gap-2"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              ) : (
+                <Save size={16} />
+              )}
+              {isSubmitting ? 'Adicionando...' : 'Adicionar Pessoa'}
+            </button>
           </div>
-        </Card>
-
-        <div className="form-actions">
-          <Link to="/pessoas">
-            <Button variant="ghost" disabled={isSubmitting}>
-              Cancelar
-            </Button>
-          </Link>
-          <Button 
-            type="submit" 
-            loading={isSubmitting}
-            disabled={isSubmitting}
-          >
-            <Save className="icon-sm" />
-            Adicionar Pessoa
-          </Button>
-        </div>
-      </form>
+        </form>
+      </div>
     </div>
   );
 }

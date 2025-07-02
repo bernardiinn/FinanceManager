@@ -1,12 +1,19 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+// Backend service with limited type information from API responses
+
+import type {
+  Pessoa,
+  Cartao
+} from '../types';
+import { backendDataService } from './backendDataService';
+
 /**
  * Unified Database Service - Single source of truth for all app data
  * 
  * Routes all data operations through the backend API with proper user isolation.
  * No localStorage or local SQLite usage - fully backend-driven.
  */
-
-import { backendDataService } from './backendDataService';
-import type { Pessoa, Gasto, Recorrencia } from '../types';
 
 interface AppSettings {
   currency: string;
@@ -69,27 +76,24 @@ class UnifiedDatabaseService {
           nome: pessoa.nome,
           telefone: pessoa.telefone,
           observacoes: pessoa.observacoes,
+          createdAt: pessoa.createdAt || new Date().toISOString(),
+          updatedAt: pessoa.updatedAt || new Date().toISOString(),
           cartoes: cartoes.map((cartao: any) => ({
             id: cartao.id,
-            pessoaId: cartao.pessoa_id,
             descricao: cartao.descricao,
-            // New format
-            valorTotal: cartao.valor_total,
-            parcelasTotais: cartao.parcelas_totais,
-            parcelasPagas: cartao.parcelas_pagas,
-            valorPago: cartao.valor_pago,
-            dataVencimento: cartao.data_vencimento,
-            observacoes: cartao.observacoes,
-            tipoCartao: cartao.tipo_cartao,
-            // Legacy format for backward compatibility
             valor_total: cartao.valor_total,
-            numero_de_parcelas: cartao.parcelas_totais,
+            numero_de_parcelas: cartao.numero_de_parcelas || cartao.parcelas_totais,
             parcelas_pagas: cartao.parcelas_pagas,
-            data_vencimento: cartao.data_vencimento,
-            tipo_cartao: cartao.tipo_cartao || 'credito',
+            observacoes: cartao.observacoes,
             pessoa_id: cartao.pessoa_id,
-          })),
-        };
+            installments: cartao.installments || [],
+            dueDay: cartao.dueDay || 1,
+            currency: cartao.currency || 'BRL',
+            status: cartao.status || 'active',
+            createdAt: cartao.createdAt || new Date().toISOString(),
+            updatedAt: cartao.updatedAt || new Date().toISOString(),
+          } as Cartao)),
+        } as Pessoa;
       })
     );
     
@@ -106,6 +110,8 @@ class UnifiedDatabaseService {
       nome: backendPessoa.nome,
       telefone: backendPessoa.telefone,
       observacoes: backendPessoa.observacoes,
+      createdAt: backendPessoa.createdAt || new Date().toISOString(),
+      updatedAt: backendPessoa.updatedAt || new Date().toISOString(),
       cartoes: [],
     };
   }
@@ -131,27 +137,24 @@ class UnifiedDatabaseService {
       nome: backendPessoa.nome,
       telefone: backendPessoa.telefone,
       observacoes: backendPessoa.observacoes,
+      createdAt: backendPessoa.createdAt || new Date().toISOString(),
+      updatedAt: backendPessoa.updatedAt || new Date().toISOString(),
       cartoes: cartoes.map((cartao: any) => ({
         id: cartao.id,
-        pessoaId: cartao.pessoa_id,
         descricao: cartao.descricao,
-        // New format
-        valorTotal: cartao.valor_total,
-        parcelasTotais: cartao.parcelas_totais,
-        parcelasPagas: cartao.parcelas_pagas,
-        valorPago: cartao.valor_pago,
-        dataVencimento: cartao.data_vencimento,
-        observacoes: cartao.observacoes,
-        tipoCartao: cartao.tipo_cartao,
-        // Legacy format for backward compatibility
         valor_total: cartao.valor_total,
-        numero_de_parcelas: cartao.parcelas_totais,
+        numero_de_parcelas: cartao.numero_de_parcelas || cartao.parcelas_totais,
         parcelas_pagas: cartao.parcelas_pagas,
-        data_vencimento: cartao.data_vencimento,
-        tipo_cartao: cartao.tipo_cartao || 'credito',
+        observacoes: cartao.observacoes,
         pessoa_id: cartao.pessoa_id,
-      })),
-    };
+        installments: cartao.installments || [],
+        dueDay: cartao.dueDay || 1,
+        currency: cartao.currency || 'BRL',
+        status: cartao.status || 'active',
+        createdAt: cartao.createdAt || new Date().toISOString(),
+        updatedAt: cartao.updatedAt || new Date().toISOString(),
+      } as Cartao)),
+    } as Pessoa;
   }
 
   // === CARTÕES ===
@@ -168,53 +171,46 @@ class UnifiedDatabaseService {
     
     const backendCartao = await backendDataService.createCartao(pessoaId, {
       descricao: cartao.descricao,
-      valorTotal: cartao.valorTotal,
-      parcelasTotais: cartao.parcelasTotais,
-      parcelasPagas: cartao.parcelasPagas || 0,
-      valorPago: cartao.valorPago || 0,
-      dataVencimento: cartao.dataVencimento,
+      valor_total: cartao.valor_total || cartao.valorTotal,
+      numero_de_parcelas: cartao.numero_de_parcelas || cartao.parcelasTotais,
+      parcelas_pagas: cartao.parcelas_pagas || cartao.parcelasPagas || 0,
+      data_compra: cartao.data_compra || cartao.dataVencimento,
       observacoes: cartao.observacoes,
-      tipoCartao: cartao.tipoCartao || 'credito',
-    });
+      categoria: cartao.categoria || cartao.tipoCartao || 'credito',
+    } as any);
     
-    // Transform back to frontend format
+    // Transform back to frontend format with type assertion
     return {
       id: backendCartao.id,
-      pessoaId: backendCartao.pessoa_id,
       descricao: backendCartao.descricao,
-      // New format
-      valorTotal: backendCartao.valor_total,
-      parcelasTotais: backendCartao.parcelas_totais,
-      parcelasPagas: backendCartao.parcelas_pagas,
-      valorPago: backendCartao.valor_pago,
-      dataVencimento: backendCartao.data_vencimento,
-      observacoes: backendCartao.observacoes,
-      tipoCartao: backendCartao.tipo_cartao,
-      // Legacy format for backward compatibility
-      valor_total: backendCartao.valor_total,
-      numero_de_parcelas: backendCartao.parcelas_totais,
-      parcelas_pagas: backendCartao.parcelas_pagas,
-      data_vencimento: backendCartao.data_vencimento,
-      tipo_cartao: backendCartao.tipo_cartao || 'credito',
-      pessoa_id: backendCartao.pessoa_id,
-    };
+      valor_total: (backendCartao as any).valor_total,
+      numero_de_parcelas: (backendCartao as any).numero_de_parcelas,
+      parcelas_pagas: (backendCartao as any).parcelas_pagas,
+      observacoes: (backendCartao as any).observacoes,
+      pessoa_id: (backendCartao as any).pessoa_id,
+      installments: [],
+      dueDay: 1,
+      currency: 'BRL',
+      status: 'active',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    } as any;
   }
 
   async updateCartao(cartao: any): Promise<void> {
     await this.ensureInitialized();
     
-    // Transform to backend format
+    // Transform to backend format with flexible typing
     await backendDataService.updateCartao({
       id: cartao.id,
       descricao: cartao.descricao,
-      valorTotal: cartao.valorTotal,
-      parcelasTotais: cartao.parcelasTotais,
-      parcelasPagas: cartao.parcelasPagas,
-      valorPago: cartao.valorPago,
-      dataVencimento: cartao.dataVencimento,
+      valor_total: cartao.valor_total || cartao.valorTotal,
+      numero_de_parcelas: cartao.numero_de_parcelas || cartao.parcelasTotais,
+      parcelas_pagas: cartao.parcelas_pagas || cartao.parcelasPagas,
+      data_compra: cartao.data_compra || cartao.dataVencimento,
       observacoes: cartao.observacoes,
-      tipoCartao: cartao.tipoCartao,
-    });
+      categoria: cartao.categoria || cartao.tipoCartao,
+    } as any);
   }
 
   async deleteCartao(cartaoId: string): Promise<void> {
@@ -227,32 +223,32 @@ class UnifiedDatabaseService {
     
     const backendCartao = await backendDataService.getCartaoById(cartaoId);
     
-    // Transform to frontend format
+    // Transform to frontend format with type assertion
     return {
       id: backendCartao.id,
-      pessoaId: backendCartao.pessoa_id,
       descricao: backendCartao.descricao,
-      // New format
-      valorTotal: backendCartao.valor_total,
-      parcelasTotais: backendCartao.parcelas_totais,
-      parcelasPagas: backendCartao.parcelas_pagas,
-      valorPago: backendCartao.valor_pago,
-      dataVencimento: backendCartao.data_vencimento,
-      observacoes: backendCartao.observacoes,
-      tipoCartao: backendCartao.tipo_cartao,
-      // Legacy format for backward compatibility
-      valor_total: backendCartao.valor_total,
-      numero_de_parcelas: backendCartao.parcelas_totais,
-      parcelas_pagas: backendCartao.parcelas_pagas,
-      data_vencimento: backendCartao.data_vencimento,
-      tipo_cartao: backendCartao.tipo_cartao || 'credito',
-      pessoa_id: backendCartao.pessoa_id,
-    };
+      valor_total: (backendCartao as any).valor_total,
+      numero_de_parcelas: (backendCartao as any).numero_de_parcelas,
+      parcelas_pagas: (backendCartao as any).parcelas_pagas,
+      observacoes: (backendCartao as any).observacoes,
+      pessoa_id: (backendCartao as any).pessoa_id,
+      installments: [],
+      dueDay: 1,
+      currency: 'BRL',
+      status: 'active',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    } as any;
   }
 
   async markInstallmentAsPaid(cartaoId: string, installmentNumber: number): Promise<void> {
     await this.ensureInitialized();
     await backendDataService.markInstallmentAsPaid(cartaoId, installmentNumber);
+  }
+
+  async markInstallmentAsUnpaid(cartaoId: string, installmentNumber: number): Promise<void> {
+    await this.ensureInitialized();
+    await backendDataService.markInstallmentAsUnpaid(cartaoId, installmentNumber);
   }
 
   // === GASTOS ===
@@ -268,9 +264,11 @@ class UnifiedDatabaseService {
       valor: gasto.valor,
       data: gasto.data,
       categoria: gasto.categoria,
-      metodoPagamento: gasto.metodo_pagamento,
+      metodoPagamento: gasto.metodoPagamento || gasto.metodo_pagamento,
       observacoes: gasto.observacoes,
-      recorrenteId: gasto.recorrente_id,
+      recorrenteId: gasto.recorrenteId || gasto.recorrente_id,
+      createdAt: gasto.createdAt || new Date().toISOString(),
+      updatedAt: gasto.updatedAt || new Date().toISOString(),
     }));
   }
 
@@ -285,7 +283,9 @@ class UnifiedDatabaseService {
       metodoPagamento: gasto.metodoPagamento,
       observacoes: gasto.observacoes,
       recorrenteId: gasto.recorrenteId,
-    });
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    } as any);
     
     // Transform back to frontend format
     return {
@@ -294,9 +294,11 @@ class UnifiedDatabaseService {
       valor: backendGasto.valor,
       data: backendGasto.data,
       categoria: backendGasto.categoria,
-      metodoPagamento: backendGasto.metodo_pagamento,
+      metodoPagamento: (backendGasto as any).metodoPagamento || (backendGasto as any).metodo_pagamento,
       observacoes: backendGasto.observacoes,
-      recorrenteId: backendGasto.recorrente_id,
+      recorrenteId: (backendGasto as any).recorrenteId || (backendGasto as any).recorrente_id,
+      createdAt: backendGasto.createdAt || new Date().toISOString(),
+      updatedAt: backendGasto.updatedAt || new Date().toISOString(),
     };
   }
 
@@ -312,7 +314,9 @@ class UnifiedDatabaseService {
       metodoPagamento: gasto.metodoPagamento,
       observacoes: gasto.observacoes,
       recorrenteId: gasto.recorrenteId,
-    });
+      createdAt: gasto.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    } as any);
   }
 
   async deleteGasto(id: string): Promise<void> {
@@ -333,9 +337,11 @@ class UnifiedDatabaseService {
         valor: backendGasto.valor,
         data: backendGasto.data,
         categoria: backendGasto.categoria,
-        metodoPagamento: backendGasto.metodo_pagamento,
+        metodoPagamento: (backendGasto as any).metodoPagamento || (backendGasto as any).metodo_pagamento,
         observacoes: backendGasto.observacoes,
-        recorrenteId: backendGasto.recorrente_id,
+        recorrenteId: (backendGasto as any).recorrenteId || (backendGasto as any).recorrente_id,
+        createdAt: backendGasto.createdAt || new Date().toISOString(),
+        updatedAt: backendGasto.updatedAt || new Date().toISOString(),
       };
     } catch (error) {
       return null;
@@ -354,12 +360,13 @@ class UnifiedDatabaseService {
       descricao: recorrencia.descricao,
       valor: recorrencia.valor,
       categoria: recorrencia.categoria,
-      metodoPagamento: recorrencia.metodo_pagamento,
+      metodoPagamento: (recorrencia as any).metodo_pagamento || recorrencia.metodoPagamento,
       frequencia: recorrencia.frequencia,
-      dataInicio: recorrencia.data_inicio,
-      ultimaExecucao: recorrencia.ultima_execucao,
+      dataInicio: (recorrencia as any).data_inicio || recorrencia.dataInicio,
+      ultimaExecucao: (recorrencia as any).ultima_execucao || recorrencia.ultimaExecucao,
       ativo: Boolean(recorrencia.ativo),
-      observacoes: recorrencia.observacoes,
+      createdAt: recorrencia.createdAt || new Date().toISOString(),
+      updatedAt: recorrencia.updatedAt || new Date().toISOString(),
     }));
   }
 
@@ -374,8 +381,9 @@ class UnifiedDatabaseService {
       frequencia: recorrencia.frequencia,
       dataInicio: recorrencia.dataInicio,
       ativo: recorrencia.ativo,
-      observacoes: recorrencia.observacoes,
-    });
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    } as any);
     
     // Transform back to frontend format
     return {
@@ -383,13 +391,14 @@ class UnifiedDatabaseService {
       descricao: backendRecorrencia.descricao,
       valor: backendRecorrencia.valor,
       categoria: backendRecorrencia.categoria,
-      metodoPagamento: backendRecorrencia.metodo_pagamento,
+      metodoPagamento: (backendRecorrencia as any).metodo_pagamento || backendRecorrencia.metodoPagamento,
       frequencia: backendRecorrencia.frequencia,
-      dataInicio: backendRecorrencia.data_inicio,
-      ultimaExecucao: backendRecorrencia.ultima_execucao,
+      dataInicio: (backendRecorrencia as any).data_inicio || backendRecorrencia.dataInicio,
+      ultimaExecucao: (backendRecorrencia as any).ultima_execucao || backendRecorrencia.ultimaExecucao,
       ativo: Boolean(backendRecorrencia.ativo),
-      observacoes: backendRecorrencia.observacoes,
-    };
+      createdAt: backendRecorrencia.createdAt || new Date().toISOString(),
+      updatedAt: backendRecorrencia.updatedAt || new Date().toISOString(),
+    } as any;
   }
 
   async updateRecorrencia(recorrencia: any): Promise<void> {
@@ -404,8 +413,9 @@ class UnifiedDatabaseService {
       frequencia: recorrencia.frequencia,
       dataInicio: recorrencia.dataInicio,
       ativo: recorrencia.ativo,
-      observacoes: recorrencia.observacoes,
-    });
+      createdAt: recorrencia.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    } as any);
   }
 
   async deleteRecorrencia(id: string): Promise<void> {
@@ -425,12 +435,13 @@ class UnifiedDatabaseService {
         descricao: backendRecorrencia.descricao,
         valor: backendRecorrencia.valor,
         categoria: backendRecorrencia.categoria,
-        metodoPagamento: backendRecorrencia.metodo_pagamento,
+        metodoPagamento: (backendRecorrencia as any).metodo_pagamento || backendRecorrencia.metodoPagamento,
         frequencia: backendRecorrencia.frequencia,
-        dataInicio: backendRecorrencia.data_inicio,
-        ultimaExecucao: backendRecorrencia.ultima_execucao,
+        dataInicio: (backendRecorrencia as any).data_inicio || backendRecorrencia.dataInicio,
+        ultimaExecucao: (backendRecorrencia as any).ultima_execucao || backendRecorrencia.ultimaExecucao,
         ativo: Boolean(backendRecorrencia.ativo),
-        observacoes: backendRecorrencia.observacoes,
+        createdAt: backendRecorrencia.createdAt || new Date().toISOString(),
+        updatedAt: backendRecorrencia.updatedAt || new Date().toISOString(),
       };
     } catch (error) {
       return null;
@@ -452,7 +463,7 @@ class UnifiedDatabaseService {
     };
   }
 
-  async saveSettings(settings: AppSettings): Promise<void> {
+  async saveSettings(_settings: AppSettings): Promise<void> {
     await this.ensureInitialized();
     // TODO: Implement settings API on backend when needed
     // For now, settings are not persisted across sessions
@@ -526,7 +537,7 @@ class UnifiedDatabaseService {
     return null;
   }
 
-  async createUser(data: { name: string; email?: string }): Promise<UserProfile> {
+  async createUser(_data: { name: string; email?: string }): Promise<UserProfile> {
     await this.ensureInitialized();
     
     // User creation is handled by the backend registration system
@@ -534,7 +545,7 @@ class UnifiedDatabaseService {
     throw new Error('User creation is handled by the authentication system');
   }
 
-  async switchUser(userId: string): Promise<UserProfile | null> {
+  async switchUser(_userId: string): Promise<UserProfile | null> {
     await this.ensureInitialized();
     
     // User switching is handled by the backend authentication system
@@ -562,7 +573,7 @@ class UnifiedDatabaseService {
     throw new Error('Database export not implemented for backend architecture');
   }
 
-  async importDatabase(data: Uint8Array): Promise<void> {
+  async importDatabase(_data: Uint8Array): Promise<void> {
     await this.ensureInitialized();
     
     // Import functionality would need to be implemented on the backend

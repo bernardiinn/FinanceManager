@@ -2,7 +2,7 @@
  * EditarRecorrencia Page - Edit existing recurring transaction
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { 
   ArrowLeft, 
@@ -71,18 +71,10 @@ const EditarRecorrencia: React.FC = () => {
     { value: 'Anual', label: 'Anual (todo ano)', icon: '📆' },
   ];
 
-  useEffect(() => {
-    if (id) {
-      loadRecorrencia();
-    } else {
-      navigate('/recorrencias');
-    }
-  }, [id]);
-
-  const loadRecorrencia = async () => {
+  const loadRecorrencia = useCallback(async () => {
     try {
       setLoading(true);
-      const recorrenciaData = expenseService.getRecorrenciaById(id!);
+      const recorrenciaData = await expenseService.getRecorrenciaById(id!);
       
       if (!recorrenciaData) {
         addToast({
@@ -116,7 +108,15 @@ const EditarRecorrencia: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, addToast, navigate]);
+
+  useEffect(() => {
+    if (id) {
+      loadRecorrencia();
+    } else {
+      navigate('/recorrencias');
+    }
+  }, [id, loadRecorrencia, navigate]);
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -173,11 +173,24 @@ const EditarRecorrencia: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      const updatedRecorrencia = expenseService.updateRecorrencia(id!, formData);
-      
-      if (!updatedRecorrencia) {
-        throw new Error('Failed to update recorrencia');
+      if (!recorrencia) {
+        throw new Error('Recorrencia data not loaded');
       }
+
+      const updatedRecorrencia = {
+        ...recorrencia,
+        descricao: formData.descricao,
+        valor: parseFloat(formData.valor.toString()),
+        categoria: formData.categoria,
+        metodoPagamento: formData.metodoPagamento,
+        frequencia: formData.frequencia as 'Mensal' | 'Semanal' | 'Anual',
+        dataInicio: formData.dataInicio,
+        dataFim: formData.dataFim || undefined,
+        ativo: formData.ativo,
+        updatedAt: new Date().toISOString(),
+      };
+
+      await expenseService.updateRecorrencia(updatedRecorrencia);
       
       addToast({
         type: 'success',
@@ -250,7 +263,7 @@ const EditarRecorrencia: React.FC = () => {
         {/* Header */}
         <div className="flex items-center gap-4 mb-6">
           <Link to="/recorrencias">
-            <Button variant="outline" size="sm">
+            <Button variant="secondary" size="sm">
               <ArrowLeft size={16} />
             </Button>
           </Link>
@@ -350,7 +363,7 @@ const EditarRecorrencia: React.FC = () => {
                   <button
                     key={freq.value}
                     type="button"
-                    onClick={() => handleInputChange('frequencia', freq.value as any)}
+                    onClick={() => handleInputChange('frequencia', freq.value)}
                     className={`p-4 border rounded-lg text-left transition-colors ${
                       formData.frequencia === freq.value
                         ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300'
@@ -512,7 +525,7 @@ const EditarRecorrencia: React.FC = () => {
               </Button>
               
               <Link to="/recorrencias" className="flex-1">
-                <Button variant="outline" className="w-full">
+                <Button variant="secondary" className="w-full">
                   Cancelar
                 </Button>
               </Link>

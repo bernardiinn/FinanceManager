@@ -39,13 +39,17 @@ class ExpenseService {
     return unifiedDatabaseService.createGasto(gasto);
   }
 
-  async updateGasto(gasto: Gasto): Promise<void> {
-    const gastoIndex = (await this.getAllGastos()).findIndex(g => g.id === gasto.id);
-    if (gastoIndex === -1) {
+  async updateGasto(id: string, formData: GastoFormData): Promise<void> {
+    const existingGasto = await this.getGastoById(id);
+    if (!existingGasto) {
       throw new Error('Gasto not found');
     }
-
-    return unifiedDatabaseService.updateGasto(gasto);
+    const updatedGasto = {
+      ...existingGasto,
+      ...formData,
+      id: existingGasto.id, // Ensure id is not overwritten
+    };
+    return unifiedDatabaseService.updateGasto(updatedGasto);
   }
 
   async deleteGasto(id: string): Promise<void> {
@@ -64,13 +68,16 @@ class ExpenseService {
   }
 
   async createRecorrencia(recorrenciaData: RecorrenciaFormData): Promise<Recorrencia> {
+    const now = new Date().toISOString();
     const recorrencia = {
       id: generateUUID(),
       ...recorrenciaData,
-      data_inicio: recorrenciaData.data_inicio || new Date().toISOString().split('T')[0],
-      ativo: recorrenciaData.ativo !== false // Default to true
+      valor: typeof recorrenciaData.valor === 'string' ? parseFloat(recorrenciaData.valor) : recorrenciaData.valor,
+      dataInicio: recorrenciaData.dataInicio || new Date().toISOString().split('T')[0],
+      ativo: recorrenciaData.ativo !== false, // Default to true
+      createdAt: now,
+      updatedAt: now,
     };
-
     return unifiedDatabaseService.createRecorrencia(recorrencia);
   }
 
@@ -90,79 +97,58 @@ class ExpenseService {
   // === RECURRING TRANSACTIONS ===
   
   async processRecurringTransactions(): Promise<Gasto[]> {
-    // Get all active recorrencias
     const recorrencias = await this.getAllRecorrencias();
     const activeRecorrencias = recorrencias.filter(r => r.ativo);
-    
     const newGastos: Gasto[] = [];
     const today = new Date();
-    
+    const nowIso = today.toISOString();
     for (const recorrencia of activeRecorrencias) {
-      // Check if we need to create a new transaction based on frequency
       const shouldCreateTransaction = this.shouldCreateRecurringTransaction(recorrencia, today);
-      
       if (shouldCreateTransaction) {
-        const newGasto = {
+        const newGasto: Gasto = {
           id: generateUUID(),
           descricao: `[Recorrente] ${recorrencia.descricao}`,
           valor: recorrencia.valor,
-          data: today.toISOString().split('T')[0],
+          data: nowIso.split('T')[0],
           categoria: recorrencia.categoria,
           metodoPagamento: recorrencia.metodoPagamento,
           observacoes: `Gerado automaticamente de recorrência: ${recorrencia.descricao}`,
           recorrenteId: recorrencia.id,
+          createdAt: nowIso,
+          updatedAt: nowIso,
         };
-        
-        // Create the gasto
         await this.createGasto(newGasto);
         newGastos.push(newGasto);
-        
-        // Update the recorrencia's last execution date
         await unifiedDatabaseService.updateRecorrencia({
           ...recorrencia,
-          ultimaExecucao: today.toISOString().split('T')[0],
+          ultimaExecucao: nowIso.split('T')[0],
+          updatedAt: nowIso,
         });
       }
     }
-    
     return newGastos;
   }
   
   private shouldCreateRecurringTransaction(recorrencia: Recorrencia, today: Date): boolean {
     if (!recorrencia.ativo) return false;
-    
     const dataInicio = new Date(recorrencia.dataInicio);
     const ultimaExecucao = recorrencia.ultimaExecucao ? new Date(recorrencia.ultimaExecucao) : null;
-    
-    // If never executed and start date has passed
     if (!ultimaExecucao && dataInicio <= today) {
       return true;
     }
-    
-    // If already executed, check if enough time has passed based on frequency
     if (ultimaExecucao) {
       const daysSinceLastExecution = Math.floor((today.getTime() - ultimaExecucao.getTime()) / (1000 * 60 * 60 * 24));
-      
       switch (recorrencia.frequencia) {
-        case 'diario':
-          return daysSinceLastExecution >= 1;
-        case 'semanal':
+        case 'Semanal':
           return daysSinceLastExecution >= 7;
-        case 'mensal':
+        case 'Mensal':
           return daysSinceLastExecution >= 30;
-        case 'bimestral':
-          return daysSinceLastExecution >= 60;
-        case 'trimestral':
-          return daysSinceLastExecution >= 90;
-        case 'semestral':
-          return daysSinceLastExecution >= 180;
-        case 'anual':
+        case 'Anual':
           return daysSinceLastExecution >= 365;
         default:
           return false;
       }
     }
-    
     return false;
   }
 
@@ -173,43 +159,35 @@ class ExpenseService {
     const now = new Date();
     const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
-
     const thisMonthGastos = gastos.filter(gasto => {
       const gastoDate = new Date(gasto.data);
       return gastoDate.getMonth() === currentMonth && gastoDate.getFullYear() === currentYear;
     });
-
     const thisMonthTotal = thisMonthGastos.reduce((sum, gasto) => sum + gasto.valor, 0);
-
-    // Get last month for comparison
-    const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
-    const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
-
-    const lastMonthGastos = gastos.filter(gasto => {
+    const thisYearGastos = gastos.filter(gasto => {
       const gastoDate = new Date(gasto.data);
-      return gastoDate.getMonth() === lastMonth && gastoDate.getFullYear() === lastMonthYear;
+      return gastoDate.getFullYear() === currentYear;
     });
-
-    const lastMonthTotal = lastMonthGastos.reduce((sum, gasto) => sum + gasto.valor, 0);
-
-    // Calculate categories
-    const categorias = thisMonthGastos.reduce((acc, gasto) => {
-      const categoria = gasto.categoria || 'Outros';
-      acc[categoria] = (acc[categoria] || 0) + gasto.valor;
-      return acc;
-    }, {} as Record<string, number>);
-
-    const topCategory = Object.entries(categorias)
-      .sort(([,a], [,b]) => b - a)[0];
-
+    const thisYearTotal = thisYearGastos.reduce((sum, gasto) => sum + gasto.valor, 0);
+    const dailyTotals: Record<string, number> = {};
+    gastos.forEach(gasto => {
+      dailyTotals[gasto.data] = (dailyTotals[gasto.data] || 0) + gasto.valor;
+    });
+    const days = Object.keys(dailyTotals).length || 1;
+    const mediaGastosDiario = gastos.length ? (gastos.reduce((sum, gasto) => sum + gasto.valor, 0) / days) : 0;
+    const gastosPorCategoria: Record<string, number> = {};
+    const gastosPorMetodo: Record<string, number> = {};
+    gastos.forEach(gasto => {
+      gastosPorCategoria[gasto.categoria] = (gastosPorCategoria[gasto.categoria] || 0) + gasto.valor;
+      gastosPorMetodo[gasto.metodoPagamento] = (gastosPorMetodo[gasto.metodoPagamento] || 0) + gasto.valor;
+    });
     return {
-      totalMesAtual: thisMonthTotal,
-      totalMesAnterior: lastMonthTotal,
       totalGastos: gastos.length,
-      gastosNesteMes: thisMonthGastos.length,
-      categoriaComMaisGastos: topCategory ? topCategory[0] : 'Nenhuma',
-      valorCategoriaComMaisGastos: topCategory ? topCategory[1] : 0,
-      categorias: Object.entries(categorias).map(([nome, valor]) => ({ nome, valor }))
+      gastosPorCategoria,
+      gastosPorMetodo,
+      gastosMes: thisMonthTotal,
+      gastosAno: thisYearTotal,
+      mediaGastosDiario,
     };
   }
 
@@ -217,50 +195,29 @@ class ExpenseService {
     const gastos = await this.getAllGastos();
     const now = new Date();
     const summary: MonthlyExpenseSummary[] = [];
-
-    // Get last 12 months
     for (let i = 11; i >= 0; i--) {
       const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const month = date.getMonth();
       const year = date.getFullYear();
-
       const monthGastos = gastos.filter(gasto => {
         const gastoDate = new Date(gasto.data);
         return gastoDate.getMonth() === month && gastoDate.getFullYear() === year;
       });
-
       const total = monthGastos.reduce((sum, gasto) => sum + gasto.valor, 0);
-
+      const categorias: Record<string, number> = {};
+      monthGastos.forEach(gasto => {
+        categorias[gasto.categoria] = (categorias[gasto.categoria] || 0) + gasto.valor;
+      });
       summary.push({
-        mes: date.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }),
-        total: total,
-        quantidade: monthGastos.length
+        month: `${year}-${String(month + 1).padStart(2, '0')}`,
+        total,
+        categorias,
+        count: monthGastos.length,
       });
     }
-
     return summary;
   }
 
-  async getCategoryBreakdown(): Promise<Array<{ categoria: string; total: number; count: number }>> {
-    const gastos = await this.getAllGastos();
-    const categoryMap = new Map<string, { total: number; count: number }>();
-
-    gastos.forEach(gasto => {
-      const categoria = gasto.categoria || 'Outros';
-      const current = categoryMap.get(categoria) || { total: 0, count: 0 };
-      categoryMap.set(categoria, {
-        total: current.total + gasto.valor,
-        count: current.count + 1
-      });
-    });
-
-    return Array.from(categoryMap.entries())
-      .map(([categoria, data]) => ({ categoria, ...data }))
-      .sort((a, b) => b.total - a.total);
-  }
-
-  // === RECURRING TRANSACTIONS ANALYTICS ===
-  
   async getRecurringTransactionsSummary(): Promise<{
     totalIncome: number;
     totalExpenses: number;
@@ -269,20 +226,13 @@ class ExpenseService {
   }> {
     const recorrencias = await this.getAllRecorrencias();
     const activeRecorrencias = recorrencias.filter(r => r.ativo);
-
-    const income = activeRecorrencias
-      .filter(r => r.tipo === 'income')
-      .reduce((sum, r) => sum + r.valor, 0);
-
-    const expenses = activeRecorrencias
-      .filter(r => r.tipo === 'expense')
-      .reduce((sum, r) => sum + r.valor, 0);
-
+    // No 'tipo' property, so treat all as expenses
+    const expenses = activeRecorrencias.reduce((sum, r) => sum + r.valor, 0);
     return {
-      totalIncome: income,
+      totalIncome: 0,
       totalExpenses: expenses,
-      netIncome: income - expenses,
-      activeTransactions: activeRecorrencias.length
+      netIncome: -expenses,
+      activeTransactions: activeRecorrencias.length,
     };
   }
 
@@ -341,13 +291,12 @@ class ExpenseService {
   async importRecorrencias(recorrencias: Recorrencia[]): Promise<void> {
     for (const recorrencia of recorrencias) {
       try {
-        // Check if recorrencia already exists
         const existing = await this.getRecorrenciaById(recorrencia.id);
         if (!existing) {
           await unifiedDatabaseService.createRecorrencia(recorrencia);
         }
       } catch (error) {
-        console.warn('Failed to import recorrencia:', recorrencia.nome, error);
+        console.warn('Failed to import recorrencia:', recorrencia.descricao, error);
       }
     }
   }

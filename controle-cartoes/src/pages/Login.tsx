@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { LogIn, Mail, Lock, Eye, EyeOff, Sparkles } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, LogIn } from 'lucide-react';
 import { PrimaryButton } from '../components/ui/FormComponents';
 import { Card } from '../components/ui/Card';
 import { FormField, FormError } from '../components/ui/Form';
@@ -25,14 +25,11 @@ export default function Login() {
   const { addToast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
-  const [debugInfo, setDebugInfo] = useState<string>('');
 
   // Redirect if user becomes authenticated
   useEffect(() => {
-    setDebugInfo(prev => prev + `\n[useEffect] isAuthenticated: ${isAuthenticated}`);
     if (isAuthenticated) {
-      const from = (location.state as any)?.from?.pathname || '/';
-      setDebugInfo(prev => prev + `\n[useEffect] Redirecting to: ${from}`);
+      const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/';
       navigate(from, { replace: true });
     }
   }, [isAuthenticated, navigate, location]);
@@ -52,42 +49,33 @@ export default function Login() {
       newErrors.password = 'A senha deve ter pelo menos 6 caracteres';
     }
 
-    setDebugInfo(prev => prev + `\n[validateForm] Errors: ${JSON.stringify(newErrors)}`);
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setDebugInfo(prev => prev + '\n[handleSubmit] Submit triggered');
     if (!validateForm()) {
-      setDebugInfo(prev => prev + '\n[handleSubmit] Validation failed');
       return;
     }
-    setDebugInfo(prev => prev + '\n[handleSubmit] Validation passed');
     try {
-      setDebugInfo(prev => prev + `\n[handleSubmit] Logging in: ${formData.email}`);
       await login(formData.email.trim(), formData.password);
-      setDebugInfo(prev => prev + '\n[handleSubmit] Login success');
       addToast({
         type: 'success',
         title: 'Login realizado com sucesso!',
-        description: 'Bem-vindo de volta!'
       });
-    } catch (error: any) {
-      setDebugInfo(prev => prev + `\n[handleSubmit] Login error: ${error?.message}`);
-      setErrors({ submit: error.message || 'Erro ao fazer login. Verifique suas credenciais.' });
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro ao fazer login. Verifique suas credenciais.';
+      setErrors({ submit: errorMessage });
       addToast({
         type: 'error',
         title: 'Erro no login',
-        description: error.message || 'Verifique suas credenciais e tente novamente.'
       });
     }
   };
 
   const handleChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    setDebugInfo(prev => prev + `\n[handleChange] ${field}: ${value}`);
     // Clear errors when user starts typing
     if (errors[field as keyof FormErrors]) {
       setErrors(prev => ({ ...prev, [field]: undefined }));
@@ -122,7 +110,7 @@ export default function Login() {
               error={errors.email}
             >
               <Input
-                icon={<Mail size={20} />}
+                startIcon={<Mail size={20} />}
                 type="email"
                 placeholder="seu@email.com"
                 value={formData.email}
@@ -140,22 +128,24 @@ export default function Login() {
             >
               <div className="relative">
                 <Input
-                  icon={<Lock size={20} />}
+                  startIcon={<Lock size={20} />}
                   type={showPassword ? 'text' : 'password'}
                   placeholder="Sua senha"
                   value={formData.password}
                   onChange={(e) => handleChange('password', e.target.value)}
                   disabled={isLoading}
                   autoComplete="current-password"
+                  endIcon={
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                      disabled={isLoading}
+                    >
+                      {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
+                  }
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                  disabled={isLoading}
-                >
-                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                </button>
               </div>
             </FormField>
 

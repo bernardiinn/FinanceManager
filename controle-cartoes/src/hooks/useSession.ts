@@ -3,7 +3,7 @@ import { backendAuthService } from '../services/backendAuthService';
 
 interface SessionState {
   isAuthenticated: boolean;
-  user: any | null;
+  user: { id: number; email: string; name: string } | null;
   isLoading: boolean;
   timeRemaining: number | null;
   expiresAt: number | null;
@@ -48,6 +48,7 @@ export const useSession = (): UseSessionReturn => {
     }, 100);
 
     return () => clearTimeout(initTimer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Empty dependency array = runs once on mount
 
   // Update session state from backend auth service
@@ -72,11 +73,13 @@ export const useSession = (): UseSessionReturn => {
       const isValid = await backendAuthService.validateSession();
       
       if (isValid) {
+        // Session is valid, continue
       } else {
+        // Session is invalid, already handled by updateSessionState
       }
       
       updateSessionState();
-    } catch (error) {
+    } catch {
       setSessionState({
         isAuthenticated: false,
         user: null,
@@ -92,10 +95,9 @@ export const useSession = (): UseSessionReturn => {
     setSessionState(prev => ({ ...prev, isLoading: true }));
     
     try {
-      let user;
       if (password) {
         // Login with email and password
-        user = await backendAuthService.login(email, password);
+        await backendAuthService.login(email, password);
       } else {
         // For compatibility with existing code that only passes email
         // This would need to be updated in calling code to include password
@@ -120,7 +122,7 @@ export const useSession = (): UseSessionReturn => {
     setSessionState(prev => ({ ...prev, isLoading: true }));
     
     try {
-      const user = await backendAuthService.register(email, password, name);
+      await backendAuthService.register(email, password, name);
       updateSessionState();
     } catch (error) {
       setSessionState({
@@ -144,7 +146,8 @@ export const useSession = (): UseSessionReturn => {
     
     try {
       await backendAuthService.logout();
-    } catch (error) {
+    } catch {
+      // Logout errors are non-critical, continue with cleanup
     }
     
     // Reset state

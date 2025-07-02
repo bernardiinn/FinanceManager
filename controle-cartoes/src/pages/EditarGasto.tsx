@@ -2,7 +2,7 @@
  * EditarGasto Page - Edit existing expense
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Save, DollarSign, Calendar, Tag, CreditCard, FileText } from 'lucide-react';
 import { Button } from '../components/ui/Button';
@@ -52,18 +52,10 @@ const EditarGasto: React.FC = () => {
     'Outros'
   ];
 
-  useEffect(() => {
-    if (id) {
-      loadGasto();
-    } else {
-      navigate('/gastos');
-    }
-  }, [id]);
-
-  const loadGasto = async () => {
+  const loadGasto = useCallback(async () => {
     try {
       setLoading(true);
-      const gastoData = expenseService.getGastoById(id!);
+      const gastoData = await expenseService.getGastoById(id!);
       
       if (!gastoData) {
         addToast({
@@ -95,7 +87,15 @@ const EditarGasto: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, addToast, navigate]);
+
+  useEffect(() => {
+    if (id) {
+      loadGasto();
+    } else {
+      navigate('/gastos');
+    }
+  }, [id, loadGasto, navigate]);
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -157,7 +157,7 @@ const EditarGasto: React.FC = () => {
       addToast({
         type: 'success',
         title: 'Gasto Atualizado',
-        message: `Gasto "${updatedGasto.descricao}" foi atualizado com sucesso.`,
+        message: `Gasto "${updatedGasto}" foi atualizado com sucesso.`,
       });
 
       navigate('/gastos');
@@ -200,7 +200,7 @@ const EditarGasto: React.FC = () => {
         {/* Header */}
         <div className="flex items-center gap-4 mb-6">
           <Link to="/gastos">
-            <Button variant="outline" size="sm">
+            <Button variant="secondary" size="sm">
               <ArrowLeft size={16} />
             </Button>
           </Link>
@@ -367,7 +367,7 @@ const EditarGasto: React.FC = () => {
               </Button>
               
               <Link to="/gastos" className="flex-1">
-                <Button variant="outline" className="w-full">
+                <Button variant="secondary" className="w-full">
                   Cancelar
                 </Button>
               </Link>

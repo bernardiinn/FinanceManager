@@ -6,14 +6,12 @@ import {
   CreditCard, 
   AlertTriangle, 
   CheckCircle,
-  XCircle,
   Trash2,
   Calendar,
   DollarSign,
   User,
   Clock
 } from 'lucide-react';
-import CartaoCard from '../components/CartaoCard';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { useAppData } from '../hooks';
@@ -56,7 +54,6 @@ export default function CartaoDetalhe() {
     );
   }
 
-  const saldo = financeService.calcularSaldoCartao(cartao);
   const valorRecebido = financeService.calcularValorRecebido(cartao);
   const percentual = financeService.calcularPercentualCompleto(cartao);
   const isCompleted = financeService.isCartaoCompleto(cartao);
@@ -90,7 +87,7 @@ export default function CartaoDetalhe() {
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-3">
                   <Link to={`/pessoas/${pessoa.id}`}>
-                    <Button variant="ghost" size="sm" className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
+                    <Button variant="secondary" size="sm" className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
                       <ArrowLeft className="w-5 h-5" />
                     </Button>
                   </Link>
@@ -551,7 +548,7 @@ export default function CartaoDetalhe() {
               <div className="p-6 bg-gray-50 dark:bg-gray-700/30 border-t border-gray-200 dark:border-gray-700">
                 <div className="flex gap-4 justify-end">
                   <Button 
-                    variant="ghost" 
+                    variant="secondary" 
                     onClick={() => setShowDeleteConfirm(false)}
                     className="px-6 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 font-medium"
                   >

@@ -2,7 +2,7 @@
  * AdicionarGasto Page - Add new expense
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Save, DollarSign, Calendar, Tag, CreditCard, FileText } from 'lucide-react';
 import { Button } from '../components/ui/Button';
@@ -10,7 +10,7 @@ import { Card } from '../components/ui/Card';
 import { Input } from '../components/ui/Input';
 import { expenseService } from '../services/expenseService';
 import { useToast } from '../components/Toast';
-import type { GastoFormData, EXPENSE_CATEGORIES, PAYMENT_METHODS } from '../types';
+import type { GastoFormData } from '../types';
 
 const AdicionarGasto: React.FC = () => {
   const navigate = useNavigate();
@@ -100,7 +100,7 @@ const AdicionarGasto: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      const newGasto = expenseService.createGasto(formData);
+      const newGasto = await expenseService.createGasto(formData);
       
       addToast({
         type: 'success',
@@ -121,11 +121,6 @@ const AdicionarGasto: React.FC = () => {
     }
   };
 
-  const formatCurrency = (value: string) => {
-    const numericValue = value.replace(/\D/g, '');
-    return (Number(numericValue) / 100).toFixed(2);
-  };
-
   const handleValueChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     const numericValue = value.replace(/[^\d.,]/g, '').replace(',', '.');
@@ -138,7 +133,7 @@ const AdicionarGasto: React.FC = () => {
         {/* Header */}
         <div className="flex items-center gap-4 mb-6">
           <Link to="/gastos">
-            <Button variant="outline" size="sm">
+            <Button variant="secondary" size="sm">
               <ArrowLeft size={16} />
             </Button>
           </Link>
@@ -305,7 +300,7 @@ const AdicionarGasto: React.FC = () => {
               </Button>
               
               <Link to="/gastos" className="flex-1">
-                <Button variant="outline" className="w-full">
+                <Button variant="secondary" className="w-full">
                   Cancelar
                 </Button>
               </Link>

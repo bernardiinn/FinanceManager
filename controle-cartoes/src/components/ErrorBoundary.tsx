@@ -2,24 +2,30 @@
  * Error Boundary Component for Production-Ready Error Handling
  */
 
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import { Component } from 'react';
+import type { ErrorInfo, ReactNode } from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 
 interface Props {
   children: ReactNode;
   fallback?: ReactNode;
+  resetKey?: string; // Add resetKey prop to force reset when location changes
 }
 
 interface State {
   hasError: boolean;
   error?: Error;
   errorInfo?: ErrorInfo;
+  lastResetKey?: string;
 }
 
 class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
-    this.state = { hasError: false };
+    this.state = { 
+      hasError: false,
+      lastResetKey: props.resetKey 
+    };
   }
 
   static getDerivedStateFromError(error: Error): State {
@@ -27,6 +33,19 @@ class ErrorBoundary extends Component<Props, State> {
       hasError: true,
       error,
     };
+  }
+
+  static getDerivedStateFromProps(props: Props, state: State): State | null {
+    // Reset error state when resetKey changes (e.g., location change)
+    if (props.resetKey && props.resetKey !== state.lastResetKey) {
+      return {
+        hasError: false,
+        error: undefined,
+        errorInfo: undefined,
+        lastResetKey: props.resetKey,
+      };
+    }
+    return null;
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
@@ -45,7 +64,12 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   handleRetry = () => {
-    this.setState({ hasError: false, error: undefined, errorInfo: undefined });
+    this.setState({ 
+      hasError: false, 
+      error: undefined, 
+      errorInfo: undefined,
+      lastResetKey: this.props.resetKey 
+    });
   };
 
   render() {

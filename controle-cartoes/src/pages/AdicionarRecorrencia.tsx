@@ -123,7 +123,7 @@ const AdicionarRecorrencia: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      const newRecorrencia = expenseService.createRecorrencia(formData);
+      const newRecorrencia = await expenseService.createRecorrencia(formData);
       
       addToast({
         type: 'success',
@@ -177,7 +177,7 @@ const AdicionarRecorrencia: React.FC = () => {
         {/* Header */}
         <div className="flex items-center gap-4 mb-6">
           <Link to="/recorrencias">
-            <Button variant="outline" size="sm">
+            <Button variant="secondary" size="sm">
               <ArrowLeft size={16} />
             </Button>
           </Link>
@@ -252,7 +252,7 @@ const AdicionarRecorrencia: React.FC = () => {
                   <button
                     key={freq.value}
                     type="button"
-                    onClick={() => handleInputChange('frequencia', freq.value as any)}
+                    onClick={() => handleInputChange('frequencia', freq.value)}
                     className={`p-4 border rounded-lg text-left transition-colors ${
                       formData.frequencia === freq.value
                         ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300'
@@ -411,7 +411,7 @@ const AdicionarRecorrencia: React.FC = () => {
               </Button>
               
               <Link to="/recorrencias" className="flex-1">
-                <Button variant="outline" className="w-full">
+                <Button variant="secondary" className="w-full">
                   Cancelar
                 </Button>
               </Link>

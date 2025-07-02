@@ -84,7 +84,7 @@ export const FormFieldWrapper: React.FC<FormFieldWrapperProps> = ({
         {required && <span className="text-red-500 ml-1" aria-label="required">*</span>}
       </label>
       
-      {React.cloneElement(children as React.ReactElement, {
+      {React.cloneElement(children as React.ReactElement<React.HTMLAttributes<HTMLElement>>, {
         id: fieldId,
         'aria-invalid': !!error,
         'aria-describedby': error ? errorId : helpText ? helpId : undefined,
@@ -152,12 +152,12 @@ export const TextInput = forwardRef<HTMLInputElement, TextInputProps>(
         ? 'border-blue-500 ring-2 ring-blue-500/20'
         : 'border-gray-300 dark:border-gray-600';
 
-    const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+    const handleFocus = () => {
       setIsFocused(true);
       onFocus?.();
     };
 
-    const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    const handleBlur = () => {
       setIsFocused(false);
       onBlur?.();
     };
@@ -243,12 +243,12 @@ export const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(
         ? 'border-blue-500 ring-2 ring-blue-500/20'
         : 'border-gray-300 dark:border-gray-600';
 
-    const handleFocus = (e: React.FocusEvent<HTMLTextAreaElement>) => {
+    const handleFocus = () => {
       setIsFocused(true);
       onFocus?.();
     };
 
-    const handleBlur = (e: React.FocusEvent<HTMLTextAreaElement>) => {
+    const handleBlur = () => {
       setIsFocused(false);
       onBlur?.();
     };

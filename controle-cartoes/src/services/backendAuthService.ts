@@ -33,7 +33,12 @@ class BackendAuthService {
   private apiUrl: string;
   private token: string | null = null;
   private user: User | null = null;
-  private sessionInfo: any = null;
+  private sessionInfo: { 
+    id?: string;
+    expiresAt?: string;
+    loginTime?: string;
+    deviceInfo?: string;
+  } | null = null;
   private readonly TOKEN_KEY = 'controle_cartoes_session_token';
   private readonly USER_KEY = 'controle_cartoes_session_user';
 
@@ -135,7 +140,7 @@ class BackendAuthService {
   /**
    * Make authenticated request to API
    */
-  private async request(endpoint: string, options: RequestInit = {}): Promise<any> {
+  private async request<T = unknown>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${this.apiUrl}${endpoint}`;
     
     
@@ -170,7 +175,7 @@ class BackendAuthService {
    */
   async login(email: string, password: string): Promise<User> {
     
-    const response: LoginResponse = await this.request('/auth/login', {
+    const response = await this.request<LoginResponse>('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
@@ -192,7 +197,7 @@ class BackendAuthService {
    */
   async register(email: string, password: string, name: string): Promise<User> {
 
-    const response: LoginResponse = await this.request('/auth/register', {
+    const response = await this.request<LoginResponse>('/auth/register', {
       method: 'POST',
       body: JSON.stringify({ email, password, name }),
     });
@@ -222,19 +227,14 @@ class BackendAuthService {
 
 
     try {
-      const response: SessionValidationResponse = await this.request('/auth/validate');
+      const response = await this.request<SessionValidationResponse>('/auth/validate');
       
       this.user = response.user;
       this.sessionInfo = response.session;
       
       return true;
       
-    } catch (error) {
-      
-      // Check if it's a network error vs auth error
-      if (error instanceof TypeError && error.message.includes('fetch')) {
-      } else {
-      }
+    } catch {
       
       this.token = null;
       this.user = null;
@@ -255,7 +255,8 @@ class BackendAuthService {
           method: 'POST',
         });
       }
-    } catch (error) {
+    } catch {
+      // Ignore logout errors - we'll clear the session anyway
     }
     
     // Clear in-memory state and stored session
@@ -293,9 +294,9 @@ class BackendAuthService {
     let sessionId = null;
 
     if (this.sessionInfo) {
-      expiresAt = new Date(this.sessionInfo.expiresAt).getTime();
-      timeRemaining = expiresAt - Date.now();
-      sessionId = this.sessionInfo.id;
+      expiresAt = this.sessionInfo.expiresAt ? new Date(this.sessionInfo.expiresAt).getTime() : null;
+      timeRemaining = expiresAt ? expiresAt - Date.now() : null;
+      sessionId = this.sessionInfo.id || null;
     }
 
     return {
@@ -312,7 +313,7 @@ class BackendAuthService {
    * Check if current session is expired
    */
   isSessionExpired(): boolean {
-    if (!this.sessionInfo) return true;
+    if (!this.sessionInfo || !this.sessionInfo.expiresAt) return true;
     
     const expiresAt = new Date(this.sessionInfo.expiresAt).getTime();
     return Date.now() >= expiresAt;
@@ -321,7 +322,7 @@ class BackendAuthService {
   /**
    * Sync data from backend (requires authentication)
    */
-  async syncData(): Promise<any> {
+  async syncData(): Promise<unknown> {
     if (!this.isAuthenticated()) {
       throw new Error('Not authenticated');
     }

@@ -215,6 +215,7 @@ interface CheckboxProps extends BaseComponentProps, A11yProps {
   disabled?: boolean;
   required?: boolean;
   error?: string;
+  label?: React.ReactNode;
   onChange?: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onBlur?: (event: React.FocusEvent<HTMLInputElement>) => void;
 }
@@ -299,13 +300,14 @@ export const FormField: React.FC<FormFieldProps> = ({
 };
 
 // Form validation hook
-export const useFormValidation = (validationRules: Record<string, (value: any) => string | null>) => {
-  const validateField = (name: string, value: any): string | null => {
+// eslint-disable-next-line react-refresh/only-export-components
+export const useFormValidation = (validationRules: Record<string, (value: unknown) => string | null>) => {
+  const validateField = (name: string, value: unknown): string | null => {
     const rule = validationRules[name];
     return rule ? rule(value) : null;
   };
 
-  const validateForm = (values: Record<string, any>): ValidationError[] => {
+  const validateForm = (values: Record<string, unknown>): ValidationError[] => {
     const errors: ValidationError[] = [];
     
     Object.keys(validationRules).forEach(field => {

@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import type { Pessoa } from '../types';
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import type { Pessoa, Cartao, User } from '../types';
 import { unifiedDatabaseService } from '../services/unifiedDatabaseService';
 import { getBrowserCapabilities } from '../utils/uuid';
 import { useSession } from '../hooks/useSession';
@@ -16,20 +16,22 @@ interface DatabaseContextType {
   addPessoa: (pessoa: Omit<Pessoa, 'id' | 'cartoes'>) => Promise<Pessoa>;
   updatePessoa: (pessoa: Pessoa) => Promise<void>;
   deletePessoa: (id: string) => Promise<void>;
-  addCartao: (pessoaId: string, cartao: any) => Promise<any>;
-  updateCartao: (cartao: any) => Promise<void>;
+  addCartao: (pessoaId: string, cartao: Omit<Cartao, 'id'>) => Promise<Cartao>;
+  updateCartao: (cartao: Cartao) => Promise<void>;
   deleteCartao: (cartaoId: string) => Promise<void>;
-  getCartaoById: (cartaoId: string) => any;
+  getCartaoById: (cartaoId: string) => Cartao | undefined;
   markInstallmentAsPaid: (cartaoId: string, installmentNumber: number) => Promise<void>;
+  markInstallmentAsUnpaid: (cartaoId: string, installmentNumber: number) => Promise<void>;
   
   // User management
-  currentUser: any;
-  allUsers: any[];
+  currentUser: User | null;
+  allUsers: User[];
   hasMultipleUsers: boolean;
 }
 
 const DatabaseContext = createContext<DatabaseContextType | null>(null);
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useDatabaseContext = () => {
   const context = useContext(DatabaseContext);
   if (!context) {
@@ -48,17 +50,17 @@ export const DatabaseProvider: React.FC<DatabaseProviderProps> = ({ children }) 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [initialized, setInitialized] = useState(false);
-  const [currentUser, setCurrentUser] = useState<any>(null);
-  const [allUsers, setAllUsers] = useState<any[]>([]);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [allUsers, setAllUsers] = useState<User[]>([]);
 
   // Initialize database and load data
-  const refreshData = async () => {
+  const refreshData = useCallback(async () => {
     if (!isAuthenticated) return;
     try {
       setLoading(true);
       setError(null);
       
-      await unifiedDatabaseService.initialize(user?.id);
+      await unifiedDatabaseService.initialize(user?.id?.toString());
       const pessoasData = await unifiedDatabaseService.getPessoas();
       setPessoas(pessoasData);
       setInitialized(true);
@@ -69,12 +71,12 @@ export const DatabaseProvider: React.FC<DatabaseProviderProps> = ({ children }) 
     } finally {
       setLoading(false);
     }
-  };
+  }, [isAuthenticated, user?.id]);
 
   // Initialize user management
-  const refreshUserData = async () => {
+  const refreshUserData = useCallback(async () => {
     try {
-      await unifiedDatabaseService.initialize(user?.id);
+      await unifiedDatabaseService.initialize(user?.id?.toString());
       const activeUser = await unifiedDatabaseService.getActiveUser();
       const allUserProfiles = await unifiedDatabaseService.getAllProfiles();
       
@@ -83,7 +85,7 @@ export const DatabaseProvider: React.FC<DatabaseProviderProps> = ({ children }) 
     } catch (err) {
       console.warn('Failed to load user data:', err);
     }
-  };
+  }, [user?.id]);
 
   // Re-initialize and load data when session changes
   useEffect(() => {
@@ -94,7 +96,7 @@ export const DatabaseProvider: React.FC<DatabaseProviderProps> = ({ children }) 
       await refreshData();
     };
     init();
-  }, [isLoading, isAuthenticated, user?.id]);
+  }, [isLoading, isAuthenticated, user?.id, refreshData, refreshUserData]);
 
   // Database actions
   const addPessoa = async (pessoa: Omit<Pessoa, 'id' | 'cartoes'>): Promise<Pessoa> => {
@@ -148,9 +150,9 @@ export const DatabaseProvider: React.FC<DatabaseProviderProps> = ({ children }) 
     }
   };
 
-  const addCartao = async (pessoaId: string, cartao: any): Promise<any> => {
+  const addCartao = async (pessoaId: string, cartao: Omit<Cartao, 'id'>): Promise<Cartao> => {
     try {
-      const newCartao = await unifiedDatabaseService.createCartao(pessoaId, cartao);
+      const newCartao = await unifiedDatabaseService.createCartao(pessoaId, cartao) as unknown as Cartao;
       // Immediately update local state for instant UI feedback
       setPessoas(prevPessoas => 
         prevPessoas.map(p => 
@@ -171,9 +173,9 @@ export const DatabaseProvider: React.FC<DatabaseProviderProps> = ({ children }) 
     }
   };
 
-  const updateCartao = async (cartao: any): Promise<void> => {
+  const updateCartao = async (cartao: Cartao): Promise<void> => {
     try {
-      await unifiedDatabaseService.updateCartao(cartao);
+      await unifiedDatabaseService.updateCartao(cartao as unknown as Record<string, unknown>);
       // Immediately update local state for instant UI feedback
       setPessoas(prevPessoas => 
         prevPessoas.map(p => ({
@@ -213,13 +215,13 @@ export const DatabaseProvider: React.FC<DatabaseProviderProps> = ({ children }) 
     }
   };
 
-  const getCartaoById = (cartaoId: string): any => {
+  const getCartaoById = (cartaoId: string): Cartao | undefined => {
     // Find cartão in current data
     for (const pessoa of pessoas) {
       const cartao = pessoa.cartoes?.find(c => c.id === cartaoId);
       if (cartao) return cartao;
     }
-    return null;
+    return undefined;
   };
 
   const markInstallmentAsPaid = async (cartaoId: string, installmentNumber: number): Promise<void> => {
@@ -228,6 +230,17 @@ export const DatabaseProvider: React.FC<DatabaseProviderProps> = ({ children }) 
       await refreshData(); // Reload data
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to mark installment as paid';
+      setError(message);
+      throw err;
+    }
+  };
+
+  const markInstallmentAsUnpaid = async (cartaoId: string, installmentNumber: number): Promise<void> => {
+    try {
+      await unifiedDatabaseService.markInstallmentAsUnpaid(cartaoId, installmentNumber);
+      await refreshData(); // Reload data
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to mark installment as unpaid';
       setError(message);
       throw err;
     }
@@ -320,6 +333,7 @@ export const DatabaseProvider: React.FC<DatabaseProviderProps> = ({ children }) 
     deleteCartao,
     getCartaoById,
     markInstallmentAsPaid,
+    markInstallmentAsUnpaid,
     
     // User management
     currentUser,

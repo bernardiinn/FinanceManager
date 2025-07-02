@@ -11,24 +11,21 @@ import {
   AlertTriangle,
   TrendingUp as ChartLine,
   UserPlus,
-  FileDown,
   TrendingUp,
   TrendingDown,
   ArrowUpRight,
-  ArrowDownLeft,
   DollarSign,
   Calendar,
   Activity,
   RefreshCw,
-  Plus
 } from 'lucide-react';
-import { Card, PageLayout, TwoColumnGrid } from '../components/ui/Layout';
+import { PageLayout, Card } from '../components/ui/Layout';
 import { PrimaryButton } from '../components/ui/FormComponents';
 import PessoaCard from '../components/PessoaCard';
 import { useAppData } from '../hooks';
 import { financeService } from '../services/financeService';
 import { expenseService } from '../services/expenseService';
-import type { Pessoa } from '../types';
+import type { GastoSummary, RecurringSummary } from '../types';
 
 interface StatCardProps {
   title: string;
@@ -52,10 +49,11 @@ const StatCard: React.FC<StatCardProps> = ({
   trend, 
   onClick 
 }) => (
-  <Card 
-    className={`p-6 transition-all duration-200 ${onClick ? 'cursor-pointer hover:shadow-lg hover:scale-[1.02]' : ''}`}
+  <div 
+    className={`transition-all duration-200 ${onClick ? 'cursor-pointer hover:scale-[1.02]' : ''}`}
     onClick={onClick}
   >
+    <Card className="p-6 hover:shadow-lg">
     <div className="flex items-center justify-between mb-4">
       <div className={`p-3 rounded-xl ${iconBg}`}>
         <div className={iconColor}>
@@ -80,6 +78,7 @@ const StatCard: React.FC<StatCardProps> = ({
       <p className="text-sm text-gray-600 dark:text-gray-400">{title}</p>
     </div>
   </Card>
+  </div>
 );
 
 interface QuickActionProps {
@@ -117,8 +116,8 @@ const QuickAction: React.FC<QuickActionProps> = ({
 
 export default function Home() {
   const { pessoas } = useAppData();
-  const [expenseSummary, setExpenseSummary] = useState<any>(null);
-  const [recurringSummary, setRecurringSummary] = useState<any>(null);
+  const [expenseSummary, setExpenseSummary] = useState<GastoSummary | null>(null);
+  const [recurringSummary, setRecurringSummary] = useState<RecurringSummary | null>(null);
   
   useEffect(() => {
     // Load expense and recurring transaction data
@@ -136,7 +135,7 @@ export default function Home() {
           total: (recurringData || []).length,
           active: (recurringData || []).filter(r => r?.ativo).length,
           monthlyEstimate: (recurringData || [])
-            .filter(r => r?.ativo && r?.frequencia === 'mensal')
+            .filter(r => r?.ativo && r?.frequencia === 'Mensal')
             .reduce((sum, r) => sum + (r?.valor || 0), 0),
         });
       } catch (error) {

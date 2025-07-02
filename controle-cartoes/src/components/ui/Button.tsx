@@ -3,7 +3,20 @@
  */
 
 import React from 'react';
-import type { BaseComponentProps, A11yProps } from '../types';
+
+interface BaseComponentProps {
+  children?: React.ReactNode;
+  className?: string;
+}
+
+interface A11yProps {
+  'aria-label'?: string;
+  'aria-labelledby'?: string;
+  'aria-describedby'?: string;
+  'aria-expanded'?: boolean;
+  'aria-hidden'?: boolean;
+  role?: string;
+}
 
 interface ButtonProps extends BaseComponentProps, A11yProps {
   variant?: 'primary' | 'secondary' | 'danger' | 'success' | 'warning' | 'info';

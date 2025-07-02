@@ -2,97 +2,31 @@
  * Export Page - Data backup and export functionality
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   Download, 
   Upload, 
-  FileDown as FileExport, 
-  FileSpreadsheet as FileCsv, 
-  FileCode,
-  CloudDownload,
-  CloudUpload,
+  FileText, 
+  FileSpreadsheet, 
   CheckCircle,
-  AlertTriangle
+  AlertTriangle,
+  ArrowLeft,
+  CloudUpload,
+  HardDrive
 } from 'lucide-react';
-import Card from '../components/ui/Card';
-import Button from '../components/ui/Button';
-import { FormGroup, Label, Input } from '../components/ui/Form';
+import { Link } from 'react-router-dom';
+import { Card } from '../components/ui/Card';
 import { useBackup, useAppData } from '../hooks';
 import { useToast } from '../components/Toast';
-import { unifiedDatabaseService } from '../services/unifiedDatabaseService';
-import type { Pessoa } from '../types';
-
-interface ExportOptionProps {
-  title: string;
-  description: string;
-  icon: React.ReactNode;
-  color: string;
-  onClick: () => void;
-  disabled?: boolean;
-  loading?: boolean;
-}
-
-const ExportOption: React.FC<ExportOptionProps> = ({
-  title,
-  description,
-  icon,
-  color,
-  onClick,
-  disabled = false,
-  loading = false,
-}) => (
-  <Card hover={!disabled} clickable={!disabled} onClick={disabled ? undefined : onClick}>
-    <Card.Body>
-      <div className="flex items-start gap-4">
-        <div style={{ color, fontSize: '2rem' }} className="flex-shrink-0">
-          {icon}
-        </div>
-        <div className="flex-1">
-          <h4 className="font-semibold mb-2">{title}</h4>
-          <p className="text-sm text-muted">{description}</p>
-        </div>
-        <Button
-          variant="primary"
-          size="sm"
-          onClick={onClick}
-          disabled={disabled}
-          loading={loading}
-        >
-          {loading ? 'Exportando...' : 'Exportar'}
-        </Button>
-      </div>
-    </Card.Body>
-  </Card>
-);
-
 export default function Export() {
+  const { exportData, importData } = useBackup();
   const { pessoas } = useAppData();
   const { addToast } = useToast();
-  const [importStatus, setImportStatus] = useState<{
-    type: 'success' | 'error' | null;
-    message: string;
-  }>({ type: null, message: '' });
-  const [storageInfo, setStorageInfo] = useState({ used: 0, total: 5 * 1024 * 1024 }); // 5MB default
-  
-  const { exportData, importData, exportCSV, isExporting, isImporting } = useBackup();
-
-  // Get storage info from database
-  useEffect(() => {
-    const getStorageInfo = async () => {
-      try {
-        const stats = await unifiedDatabaseService.getStorageStats();
-        setStorageInfo({
-          used: stats.databaseSize || 0,
-          total: 5 * 1024 * 1024 // 5MB
-        });
-      } catch (error) {
-        console.warn('Failed to get storage info:', error);
-      }
-    };
-    getStorageInfo();
-  }, []);
+  const [isExporting, setIsExporting] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
 
   const handleExportJSON = async () => {
+    setIsExporting(true);
     try {
       const success = await exportData();
       if (success) {
@@ -100,264 +34,252 @@ export default function Export() {
       } else {
         addToast({ type: 'error', title: 'Erro ao exportar dados' });
       }
-    } catch (error) {
+    } catch {
       addToast({ type: 'error', title: 'Erro ao exportar dados' });
+    } finally {
+      setIsExporting(false);
     }
   };
 
-  const handleExportCSV = () => {
-    try {
-      const success = exportCSV(pessoas || []);
-      if (success) {
-        addToast({ type: 'success', title: 'Relatório CSV exportado com sucesso!' });
-      } else {
-        addToast({ type: 'error', title: 'Erro ao exportar relatório CSV' });
-      }
-    } catch (error) {
-      addToast({ type: 'error', title: 'Erro ao exportar relatório CSV' });
-    }
-  };
-
-  const handleFileImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImport = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    try {
-      const success = await importData(file);
-      if (success) {
-        addToast({ type: 'success', title: 'Dados importados com sucesso! Recarregue a página para ver as alterações.' });
-      } else {
-        addToast({ type: 'error', title: 'Erro ao importar dados. Verifique se o arquivo está no formato correto.' });
+    setIsImporting(true);
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const data = JSON.parse(e.target?.result as string);
+        const success = await importData(data);
+        if (success) {
+          addToast({ type: 'success', title: 'Dados importados com sucesso!' });
+        } else {
+          addToast({ type: 'error', title: 'Erro ao importar dados' });
+        }
+      } catch {
+        addToast({ type: 'error', title: 'Arquivo inválido ou corrompido' });
+      } finally {
+        setIsImporting(false);
+        // Reset the input
+        event.target.value = '';
       }
-    } catch (error) {
-      addToast({ type: 'error', title: 'Erro ao importar dados. Verifique se o arquivo está no formato correto.' });
-    }
-    
-    // Clear the input
-    event.target.value = '';
+    };
+    reader.readAsText(file);
   };
 
-  // Calculate storage usage percentage
-  const storageUsagePercent = (storageInfo.used / storageInfo.total) * 100;
+  const formatBytes = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  // Simple storage info for demo purposes
+  const storageInfo = { used: pessoas.length * 1024, total: 5 * 1024 * 1024 }; // Rough estimate
+  const storagePercentage = (storageInfo.used / storageInfo.total) * 100;
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold mb-2">Exportar e Importar</h1>
-        <p className="text-muted">
-          Faça backup dos seus dados ou importe informações de outros dispositivos
-        </p>
-      </div>
-
-      {/* Status Messages */}
-      {importStatus.type && (
-        <div className={`alert ${importStatus.type === 'success' ? 'alert-success' : 'alert-danger'}`}>
-          <div className="flex items-center gap-2">
-            {importStatus.type === 'success' ? (
-              <CheckCircle />
-            ) : (
-              <AlertTriangle />
-            )}
-            {importStatus.message}
-          </div>
+    <div className="min-h-screen bg-gray-50 p-4">
+      <div className="max-w-4xl mx-auto">
+        {/* Header */}
+        <div className="flex items-center gap-4 mb-6">
+          <Link 
+            to="/" 
+            className="flex items-center gap-2 text-blue-600 hover:text-blue-700 transition-colors"
+          >
+            <ArrowLeft size={20} />
+            <span>Voltar</span>
+          </Link>
+          <h1 className="text-2xl font-bold text-gray-900">Backup e Export</h1>
         </div>
-      )}
 
-      {/* Storage Usage */}
-      <Card>
-        <Card.Header title="Uso do Armazenamento Local" />
-        <Card.Body>
-          <div className="space-y-4">
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm font-medium">Espaço Utilizado</span>
-                <span className="text-sm text-muted">
-                  {(storageInfo.used / 1024).toFixed(2)} KB de ~5 MB
-                </span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div
-                  className="h-2 rounded-full transition-all duration-300"
-                  style={{
-                    width: `${Math.min(storageUsagePercent, 100)}%`,
-                    backgroundColor: storageUsagePercent > 80 
-                      ? 'var(--color-danger)' 
-                      : storageUsagePercent > 60 
-                        ? 'var(--color-warning)' 
-                        : 'var(--color-success)',
-                  }}
-                />
+        <div className="grid gap-6 lg:grid-cols-2">
+          {/* Storage Usage Card */}
+          <Card className="h-fit">
+            <div className="p-4 border-b border-gray-200">
+              <h2 className="text-lg font-semibold flex items-center gap-2">
+                <HardDrive size={20} />
+                Uso do Armazenamento
+              </h2>
+            </div>
+            <div className="p-4">
+              <div className="space-y-4">
+                <div>
+                  <div className="flex justify-between text-sm mb-2">
+                    <span>Usado: {formatBytes(storageInfo.used)}</span>
+                    <span>Disponível: {formatBytes(storageInfo.total)}</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${Math.min(storagePercentage, 100)}%` }}
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {storagePercentage.toFixed(1)}% utilizado
+                  </p>
+                </div>
+
+                {storagePercentage > 80 && (
+                  <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                    <AlertTriangle size={16} className="text-amber-600 mt-0.5" />
+                    <div className="text-sm">
+                      <p className="text-amber-800 font-medium">Armazenamento quase cheio</p>
+                      <p className="text-amber-700">
+                        Considere fazer backup e limpar dados antigos.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                <div className="text-sm text-gray-600">
+                  <p><strong>Total de pessoas:</strong> {pessoas.length}</p>
+                </div>
               </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-              <div>
-                <p className="text-2xl font-bold text-primary">{pessoas?.length || 0}</p>
-                <p className="text-sm text-muted">Pessoas</p>
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-success">
-                  {pessoas?.reduce((sum, p) => sum + (p?.cartoes?.length || 0), 0) || 0}
-                </p>
-                <p className="text-sm text-muted">Cartões</p>
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-warning">
-                  {(storageInfo.used / 1024).toFixed(0)} KB
-                </p>
-                <p className="text-sm text-muted">Dados Armazenados</p>
-              </div>
+          </Card>
+
+          {/* Export Options Card */}
+          <Card className="h-fit">
+            <div className="p-4 border-b border-gray-200">
+              <h2 className="text-lg font-semibold flex items-center gap-2">
+                <Download size={20} />
+                Exportar Dados
+              </h2>
             </div>
-          </div>
-        </Card.Body>
-      </Card>
+            <div className="p-4">
+              <div className="space-y-4">
+                {/* JSON Export */}
+                <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <FileText className="text-blue-600" size={24} />
+                    <div>
+                      <h4 className="font-semibold">Backup Completo (JSON)</h4>
+                      <p className="text-sm text-gray-600">
+                        Exporta todos os dados em formato JSON
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleExportJSON}
+                    disabled={isExporting}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium"
+                  >
+                    {isExporting ? 'Exportando...' : 'Exportar'}
+                  </button>
+                </div>
 
-      {/* Export Options */}
-      <Card>
-        <Card.Header title="Opções de Exportação" />
-        <Card.Body>
-          <div className="space-y-4">
-            <ExportOption
-              title="Backup Completo (JSON)"
-              description="Exporta todos os dados incluindo configurações e temas para backup completo"
-              icon={<FileCode />}
-              color="var(--color-primary)"
-              onClick={handleExportJSON}
-              loading={isExporting}
-              disabled={!pessoas || pessoas.length === 0}
-            />
-            
-            <ExportOption
-              title="Relatório Financeiro (CSV)"
-              description="Exporta uma planilha com dados financeiros para análise externa"
-              icon={<FileCsv />}
-              color="var(--color-success)"
-              onClick={handleExportCSV}
-              disabled={!pessoas || pessoas.length === 0}
-            />
-          </div>
-        </Card.Body>
-      </Card>
-
-      {/* Import Section */}
-      <Card>
-        <Card.Header title="Importar Dados" />
-        <Card.Body>
-          <div className="space-y-4">
-            <div className="flex items-start gap-4 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-              <AlertTriangle className="text-yellow-600 flex-shrink-0 mt-1" />
-              <div>
-                <h4 className="font-semibold text-yellow-800 mb-2">⚠️ Atenção</h4>
-                <p className="text-sm text-yellow-700">
-                  A importação irá <strong>substituir todos os dados atuais</strong>. 
-                  Recomendamos fazer um backup antes de importar novos dados.
-                </p>
+                {/* CSV Export (Future Feature) */}
+                <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg opacity-50">
+                  <div className="flex items-center gap-3">
+                    <FileSpreadsheet className="text-green-600" size={24} />
+                    <div>
+                      <h4 className="font-semibold">Planilha CSV</h4>
+                      <p className="text-sm text-gray-600">
+                        Exporta dados para planilha (em breve)
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    disabled
+                    className="px-4 py-2 bg-gray-300 text-gray-500 rounded-lg cursor-not-allowed text-sm font-medium"
+                  >
+                    Em breve
+                  </button>
+                </div>
               </div>
             </div>
+          </Card>
 
-            <FormGroup>
-              <Label htmlFor="import-file">
-                Selecionar arquivo de backup (JSON)
-              </Label>
-              <Input
-                id="import-file"
-                type="file"
-                accept=".json"
-                onChange={handleFileImport}
-                disabled={isImporting}
-              />
-              {isImporting && (
-                <p className="text-sm text-muted mt-2">
-                  Importando dados...
-                </p>
-              )}
-            </FormGroup>
+          {/* Import Data Card */}
+          <Card className="h-fit">
+            <div className="p-4 border-b border-gray-200">
+              <h2 className="text-lg font-semibold flex items-center gap-2">
+                <Upload size={20} />
+                Importar Dados
+              </h2>
+            </div>
+            <div className="p-4">
+              <div className="space-y-4">
+                <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                  <AlertTriangle size={16} className="text-amber-600 mt-0.5" />
+                  <div className="text-sm">
+                    <p className="text-amber-800 font-medium">Atenção!</p>
+                    <p className="text-amber-700">
+                      A importação substituirá todos os dados existentes.
+                    </p>
+                  </div>
+                </div>
 
-            <div className="flex gap-4">
-              <div className="flex-1 p-4 border border-dashed border-gray-300 rounded-lg text-center">
-                <CloudUpload size={32} className="text-gray-400 mx-auto mb-2" />
-                <p className="text-sm text-muted">
-                  Arraste um arquivo JSON aqui ou use o botão acima
-                </p>
+                <div>
+                  <label 
+                    htmlFor="import-file"
+                    className="block text-sm font-medium text-gray-700 mb-2"
+                  >
+                    Selecionar arquivo de backup:
+                  </label>
+                  <input
+                    id="import-file"
+                    type="file"
+                    accept=".json"
+                    onChange={handleImport}
+                    disabled={isImporting}
+                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                  />
+                </div>
+
+                {isImporting && (
+                  <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <CloudUpload size={16} className="text-blue-600" />
+                    <p className="text-sm text-blue-800">Importando dados...</p>
+                  </div>
+                )}
               </div>
             </div>
-          </div>
-        </Card.Body>
-      </Card>
+          </Card>
 
-      {/* Instructions */}
-      <Card>
-        <Card.Header title="Como usar" />
-        <Card.Body>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <h4 className="font-semibold mb-3 flex items-center gap-2">
-                <Download className="text-primary" />
-                Exportação
-              </h4>
-              <ul className="space-y-2 text-sm">
-                <li>• <strong>Backup JSON:</strong> Use para transferir dados entre dispositivos</li>
-                <li>• <strong>CSV:</strong> Abra no Excel/Sheets para análises</li>
-                <li>• <strong>Automático:</strong> Dados são salvos automaticamente no navegador</li>
-                <li>• <strong>Recomendação:</strong> Faça backup mensalmente</li>
-              </ul>
+          {/* Help Card */}
+          <Card className="h-fit">
+            <div className="p-4 border-b border-gray-200">
+              <h2 className="text-lg font-semibold flex items-center gap-2">
+                <CheckCircle size={20} />
+                Como usar
+              </h2>
             </div>
-            
-            <div>
-              <h4 className="font-semibold mb-3 flex items-center gap-2">
-                <Upload className="text-success" />
-                Importação
-              </h4>
-              <ul className="space-y-2 text-sm">
-                <li>• <strong>Formato:</strong> Apenas arquivos JSON de backup</li>
-                <li>• <strong>Cuidado:</strong> Substitui todos os dados atuais</li>
-                <li>• <strong>Compatibilidade:</strong> Funciona entre diferentes dispositivos</li>
-                <li>• <strong>Segurança:</strong> Dados permanecem no seu dispositivo</li>
-              </ul>
-            </div>
-          </div>
-        </Card.Body>
-      </Card>
+            <div className="p-4">
+              <div className="space-y-4 text-sm text-gray-600">
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-2">Exportar:</h4>
+                  <ul className="space-y-1 pl-4">
+                    <li>• Clique em "Exportar" para baixar um arquivo JSON</li>
+                    <li>• O arquivo contém todos os seus dados</li>
+                    <li>• Guarde o arquivo em local seguro</li>
+                  </ul>
+                </div>
+                
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-2">Importar:</h4>
+                  <ul className="space-y-1 pl-4">
+                    <li>• Selecione um arquivo JSON de backup</li>
+                    <li>• Todos os dados atuais serão substituídos</li>
+                    <li>• Certifique-se de ter um backup antes</li>
+                  </ul>
+                </div>
 
-      {/* Quick Actions */}
-      <Card>
-        <Card.Header title="Ações Rápidas" />
-        <Card.Body>
-          <div className="flex flex-wrap gap-3">
-            <Button
-              variant="primary"
-              icon={<Download />}
-              onClick={handleExportJSON}
-              disabled={!pessoas || pessoas.length === 0}
-            >
-              Backup Rápido
-            </Button>
-            <Button
-              variant="secondary"
-              icon={<FileCsv />}
-              onClick={handleExportCSV}
-              disabled={!pessoas || pessoas.length === 0}
-            >
-              Relatório CSV
-            </Button>
-            <Button
-              variant="secondary"
-              onClick={async () => {
-                if (confirm('Tem certeza que deseja limpar todos os dados? Esta ação não pode ser desfeita.')) {
-                  try {
-                    await unifiedDatabaseService.clearAllData();
-                    window.location.reload();
-                  } catch (error) {
-                    addToast({ type: 'error', title: 'Erro ao limpar dados' });
-                  }
-                }
-              }}
-            >
-              Limpar Dados
-            </Button>
-          </div>
-        </Card.Body>
-      </Card>
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-2">Dicas:</h4>
+                  <ul className="space-y-1 pl-4">
+                    <li>• Faça backups regulares dos seus dados</li>
+                    <li>• Verifique se o arquivo está correto antes de importar</li>
+                    <li>• Mantenha seus backups em local seguro</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 }

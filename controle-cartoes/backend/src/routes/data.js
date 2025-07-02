@@ -399,6 +399,59 @@ router.post('/cartoes/:id/pay-installment', async (req, res) => {
   }
 });
 
+// Unpay installment for a cartão (reverse payment)
+router.post('/cartoes/:id/unpay-installment', async (req, res) => {
+  try {
+    const { installment_number } = req.body;
+
+    if (!installment_number || installment_number < 1) {
+      return res.status(400).json({ error: 'Valid installment_number is required' });
+    }
+
+    // Get current cartão
+    const cartao = await getRow(
+      'SELECT * FROM cartoes WHERE id = ? AND user_id = ?',
+      [req.params.id, req.user.userId]
+    );
+
+    if (!cartao) {
+      return res.status(404).json({ error: 'Cartão not found' });
+    }
+
+    // Ensure we have paid installments to reverse
+    if (cartao.parcelas_pagas <= 0) {
+      return res.status(400).json({ error: 'No paid installments to reverse' });
+    }
+
+    // Calculate new values
+    const valorPorParcela = cartao.valor_total / cartao.parcelas_totais;
+    const novoValorPago = Math.max(0, cartao.valor_pago - valorPorParcela);
+    const novasParcelasPagas = Math.max(0, cartao.parcelas_pagas - 1);
+
+    // Update cartão
+    await runQuery(
+      'UPDATE cartoes SET parcelas_pagas = ?, valor_pago = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?',
+      [novasParcelasPagas, novoValorPago, req.params.id, req.user.userId]
+    );
+
+    const updatedCartao = await getRow(
+      `SELECT c.*, p.nome as pessoa_nome 
+       FROM cartoes c 
+       LEFT JOIN pessoas p ON c.pessoa_id = p.id 
+       WHERE c.id = ? AND c.user_id = ?`,
+      [req.params.id, req.user.userId]
+    );
+
+    res.json({ 
+      message: 'Installment payment reversed successfully',
+      cartao: updatedCartao 
+    });
+  } catch (error) {
+    console.error('Unpay installment error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 /**
  * GASTOS ROUTES
  */

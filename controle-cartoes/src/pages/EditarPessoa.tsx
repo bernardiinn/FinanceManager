@@ -4,8 +4,8 @@
  */
 
 import { useState, useEffect } from 'react';
-import { useNavigate, useParams, Link } from 'react-router-dom';
-import { User, Mail, Phone, FileText, Save, ArrowLeft, AlertTriangle } from 'lucide-react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { User, Mail, Phone, Save, ArrowLeft, AlertTriangle } from 'lucide-react';
 import { useAppData } from '../hooks';
 import { useToast } from '../components/Toast';
 
@@ -74,7 +74,7 @@ export default function EditarPessoa() {
   // Real-time validation
   const validateField = (field: string, value: string): string => {
     switch (field) {
-      case 'nome':
+      case 'nome': {
         if (!value.trim()) {
           return 'O nome é obrigatório';
         }
@@ -95,6 +95,7 @@ export default function EditarPessoa() {
           return 'Já existe uma pessoa com esse nome';
         }
         return '';
+      }
 
       case 'email':
         if (value && value.trim()) {
@@ -107,7 +108,7 @@ export default function EditarPessoa() {
 
       case 'telefone':
         if (value && value.trim()) {
-          const phoneRegex = /^[\d\s\-\(\)\+]+$/;
+          const phoneRegex = /^[\d\s\-()]+]+$/;
           if (!phoneRegex.test(value.trim())) {
             return 'Telefone deve conter apenas números, espaços, hífens, parênteses e sinal de mais';
           }
@@ -208,7 +209,7 @@ export default function EditarPessoa() {
         navigate(`/pessoas/${pessoa.id}`);
       }, 1000);
 
-    } catch (error) {
+    } catch {
       addToast({ type: 'error', title: 'Erro ao atualizar pessoa. Tente novamente.' });
     } finally {
       setIsSubmitting(false);
@@ -227,8 +228,8 @@ export default function EditarPessoa() {
   // Show loading state
   if (isLoading) {
     return (
-      <PageLayout>
-        <LoadingOverlay message="Carregando dados da pessoa..." />
+      <PageLayout title="Editar Pessoa">
+        <LoadingOverlay isVisible={true} message="Carregando dados da pessoa..." />
       </PageLayout>
     );
   }
@@ -236,7 +237,7 @@ export default function EditarPessoa() {
   // Show not found state
   if (!pessoa) {
     return (
-      <PageLayout>
+      <PageLayout title="Pessoa não encontrada">
         <Card className="text-center py-12">
           <div className="flex flex-col items-center gap-4">
             <div className="p-3 bg-amber-100 dark:bg-amber-900/30 rounded-full">
@@ -264,7 +265,7 @@ export default function EditarPessoa() {
   }
 
   return (
-    <PageLayout>
+    <PageLayout title="Editar Pessoa">
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
         <PrimaryButton
@@ -273,7 +274,9 @@ export default function EditarPessoa() {
           size="sm"
           icon={<ArrowLeft size={16} />}
           className="!p-2"
-        />
+        >
+          Voltar
+        </PrimaryButton>
         <div className="flex-1">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
             <User size={24} />
@@ -374,7 +377,7 @@ export default function EditarPessoa() {
 
       {/* Loading Overlay */}
       {isSubmitting && (
-        <LoadingOverlay message="Salvando alterações..." />
+        <LoadingOverlay isVisible={isSubmitting} message="Salvando alterações..." />
       )}
     </PageLayout>
   );

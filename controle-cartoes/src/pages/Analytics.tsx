@@ -6,27 +6,20 @@ import {
   CreditCard,
   AlertTriangle,
   DollarSign,
-  CalendarCheck,
-  Repeat,
   Download,
   AlertCircle,
   CheckCircle2,
-  PieChart,
   TrendingDown,
   Activity,
   Clock,
   RefreshCw,
   Tag,
-  Calendar,
-  Target
+  Calendar
 } from 'lucide-react';
 import { Card } from '../components/ui/Card';
-import { Button } from '../components/ui/Button';
 import { PageLayout, TwoColumnGrid } from '../components/ui/Layout';
-import { financeService } from '../services/financeService';
 import { expenseService } from '../services/expenseService';
 import { useFinancialSummary, useAppData } from '../hooks';
-import type { Pessoa } from '../types';
 
 interface SimpleChartProps {
   data: Array<{ label: string; value: number; color?: string }>;
@@ -35,7 +28,7 @@ interface SimpleChartProps {
   subtitle?: string;
 }
 
-const SimpleChart: React.FC<SimpleChartProps> = ({ data, type, title, subtitle }) => {
+const SimpleChart: React.FC<SimpleChartProps> = ({ data, title, subtitle }) => {
   const maxValue = Math.max(...data.map(item => item.value));
   
   return (
@@ -90,7 +83,7 @@ interface MetricCardProps {
   trend?: 'up' | 'down' | 'neutral';
 }
 
-const MetricCard: React.FC<MetricCardProps> = ({ title, value, subtitle, icon, color, trend }) => (
+const MetricCard: React.FC<MetricCardProps> = ({ title, value, subtitle, icon, color }) => (
   <Card className="bg-white dark:bg-gray-800 p-6">
     <div className="flex items-center">
       <div className={`p-3 rounded-lg mr-4`} style={{ backgroundColor: color + '20' }}>
@@ -113,20 +106,44 @@ const MetricCard: React.FC<MetricCardProps> = ({ title, value, subtitle, icon, c
   </Card>
 );
 
+interface ExpenseData {
+  gastosPorCategoria: Array<{ categoria: string; total: number; count: number }>;
+  gastosPorFormaPagamento: Array<{ forma: string; total: number; count: number }>;
+  proximasRecorrencias: Array<{ nome: string; valor: number; proximaData: string; categoria: string; descricao: string }>;
+  summary?: {
+    gastosMes: number;
+    mediaDiaria: number;
+    totalGastos: number;
+    recorrenciasAtivas: number;
+  };
+}
+
 export default function Analytics() {
   const { pessoas } = useAppData();
   const summary = useFinancialSummary();
   const [activeTab, setActiveTab] = useState<'loans' | 'expenses'>('loans');
-  const [expenseData, setExpenseData] = useState<any>(null);
+  const [expenseData, setExpenseData] = useState<ExpenseData>({
+    gastosPorCategoria: [],
+    gastosPorFormaPagamento: [],
+    proximasRecorrencias: []
+  });
 
   useEffect(() => {
     const loadExpenseData = async () => {
       try {
         const analytics = await expenseService.getExpenseSummary();
-        setExpenseData(analytics);
+        setExpenseData(analytics as unknown as ExpenseData || {
+          gastosPorCategoria: [],
+          gastosPorFormaPagamento: [],
+          proximasRecorrencias: []
+        });
       } catch (error) {
         console.error('Erro ao carregar dados de gastos:', error);
-        setExpenseData(null);
+        setExpenseData({
+          gastosPorCategoria: [],
+          gastosPorFormaPagamento: [],
+          proximasRecorrencias: []
+        });
       }
     };
 
@@ -163,45 +180,56 @@ export default function Analytics() {
     return colors[method] || '#6B7280';
   };
 
-  // Data processing
+  // Safe data processing with proper Cartao type handling
   const peopleData = pessoas.map(pessoa => ({
     label: pessoa.nome,
-    value: pessoa.cartoes.reduce((sum, cartao) => sum + (cartao.valor - cartao.valorPago), 0),
+    value: pessoa.cartoes.reduce((sum, cartao) => {
+      const totalAmount = cartao.valor_total || 0;
+      const paidInstallments = cartao.parcelas_pagas || 0;
+      const totalInstallments = cartao.numero_de_parcelas || 1;
+      const installmentAmount = totalAmount / totalInstallments;
+      const remaining = totalAmount - (paidInstallments * installmentAmount);
+      return sum + Math.max(0, remaining);
+    }, 0),
   })).filter(item => item.value > 0).sort((a, b) => b.value - a.value);
 
+  // Safe overdue data processing
   const overdueData = pessoas.flatMap(pessoa =>
-    pessoa.cartoes.filter(cartao => new Date(cartao.dataVencimento) < new Date() && (cartao.valor - cartao.valorPago) > 0)
-      .map(cartao => ({
-        label: `${pessoa.nome} - ${cartao.descricao}`,
-        value: cartao.valor - cartao.valorPago,
-        color: '#EF4444',
-      }))
+    pessoa.cartoes.filter(cartao => {
+      const paidInstallments = cartao.parcelas_pagas || 0;
+      const totalInstallments = cartao.numero_de_parcelas || 1;
+      return paidInstallments < totalInstallments && cartao.status !== 'completed';
+    }).map(cartao => ({
+      label: `${pessoa.nome} - ${cartao.descricao}`,
+      value: (cartao.valor_total || 0) - ((cartao.parcelas_pagas || 0) * ((cartao.valor_total || 0) / (cartao.numero_de_parcelas || 1))),
+      color: '#EF4444',
+    }))
   );
 
   const statusData = [
     {
       label: 'Empréstimos Ativos',
-      value: summary.activeLoans || 0,
+      value: summary?.activeLoans || 0,
       color: '#3B82F6',
     },
     {
       label: 'Cartões Quitados',
-      value: summary.completedLoans || 0,
+      value: summary?.completedLoans || 0,
       color: '#10B981',
     },
     {
       label: 'Cartões em Atraso',
-      value: summary.overdueLoans || 0,
+      value: summary?.overdueLoans || 0,
       color: '#EF4444',
     },
   ].filter(item => item.value > 0);
 
-  const paymentRate = summary.totalDebt > 0 
-    ? ((summary.totalPaid / summary.totalDebt) * 100).toFixed(1) 
+  const paymentRate = (summary?.totalDebt || 0) > 0 
+    ? (((summary?.totalPaid || 0) / (summary?.totalDebt || 1)) * 100).toFixed(1) 
     : '0';
 
   const avgDebtPerPerson = pessoas.length > 0 
-    ? (summary.totalRemaining || 0) / pessoas.length 
+    ? (summary?.totalRemaining || 0) / pessoas.length 
     : 0;
 
   return (
@@ -210,10 +238,10 @@ export default function Analytics() {
       subtitle="Insights financeiros sobre seus empréstimos e gastos"
       icon={<BarChart3 size={24} />}
       actions={
-        <Button variant="secondary" className="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700">
+        <button className="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 flex items-center gap-2">
           <Download className="w-4 h-4" />
-          <span className="hidden sm:inline ml-2">Exportar</span>
-        </Button>
+          <span className="hidden sm:inline">Exportar</span>
+        </button>
       }
     >
       <div className="space-y-8">
@@ -339,12 +367,12 @@ export default function Analytics() {
                 </div>
               </div>
               <div className="space-y-4">
-                {summary.overdueCards > 0 && (
+                {(summary?.overdueLoans || 0) > 0 && (
                   <div className="flex items-start p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
                     <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 mr-3 mt-0.5" />
                     <div>
                       <p className="text-sm font-medium text-red-800 dark:text-red-200">
-                        {summary.overdueCards} cartão(ões) em atraso
+                        {(summary?.overdueLoans || 0)} empréstimo(s) em atraso
                       </p>
                       <p className="text-xs text-red-600 dark:text-red-300 mt-1">
                         Considere entrar em contato com os devedores
@@ -353,7 +381,7 @@ export default function Analytics() {
                   </div>
                 )}
 
-                {summary.totalOutstanding > summary.totalReceived && (
+                {(summary?.totalRemaining || 0) > (summary?.totalPaid || 0) && (
                   <div className="flex items-start p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
                     <AlertTriangle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mr-3 mt-0.5" />
                     <div>
@@ -395,7 +423,7 @@ export default function Analytics() {
                   </div>
                 )}
 
-                {summary.overdueCards === 0 && summary.totalOutstanding <= summary.totalReceived && (!peopleData.length || peopleData[0].value <= 1000) && parseFloat(paymentRate) > 30 && (
+                {(summary?.overdueLoans || 0) === 0 && (summary?.totalRemaining || 0) <= (summary?.totalPaid || 0) && (!peopleData.length || peopleData[0].value <= 1000) && parseFloat(paymentRate) > 30 && (
                   <div className="flex items-center justify-center py-8">
                     <CheckCircle2 className="w-6 h-6 text-green-500 mr-2" />
                     <span className="text-sm text-gray-500 dark:text-gray-400 italic">
@@ -429,14 +457,14 @@ export default function Analytics() {
               />
               <MetricCard
                 title="Total de Gastos"
-                value={expenseData.summary.totalGastos.toString()}
+                value={(expenseData?.summary?.totalGastos || 0).toString()}
                 subtitle="Gastos registrados"
                 icon={<Tag />}
                 color="#3B82F6"
               />
               <MetricCard
                 title="Recorrências Ativas"
-                value={expenseData.summary.recorrenciasAtivas.toString()}
+                value={(expenseData?.summary?.recorrenciasAtivas || 0).toString()}
                 subtitle="Transações automáticas"
                 icon={<RefreshCw />}
                 color="#10B981"
@@ -448,9 +476,10 @@ export default function Analytics() {
               {/* Gastos por Categoria */}
               <Card className="bg-white dark:bg-gray-800 p-6">
                 <SimpleChart
-                  data={expenseData.gastosPorCategoria.map((item: any) => ({
-                    ...item,
-                    color: getCategoryColor(item.label)
+                  data={(expenseData?.gastosPorCategoria || []).map((item: { categoria: string; total: number; count: number }) => ({
+                    label: item.categoria,
+                    value: item.total,
+                    color: getCategoryColor(item.categoria)
                   }))}
                   type="bar"
                   title="Gastos por Categoria"
@@ -461,9 +490,10 @@ export default function Analytics() {
               {/* Gastos por Forma de Pagamento */}
               <Card className="bg-white dark:bg-gray-800 p-6">
                 <SimpleChart
-                  data={expenseData.gastosPorFormaPagamento.map((item: any) => ({
-                    ...item,
-                    color: getPaymentMethodColor(item.label)
+                  data={(expenseData?.gastosPorFormaPagamento || []).map((item: { forma: string; total: number; count: number }) => ({
+                    label: item.forma,
+                    value: item.total,
+                    color: getPaymentMethodColor(item.forma)
                   }))}
                   type="bar"
                   title="Gastos por Forma de Pagamento"
@@ -473,7 +503,7 @@ export default function Analytics() {
             </TwoColumnGrid>
 
             {/* Recorrências Próximas */}
-            {expenseData.proximasRecorrencias && expenseData.proximasRecorrencias.length > 0 && (
+            {expenseData?.proximasRecorrencias && expenseData.proximasRecorrencias.length > 0 && (
               <Card className="bg-white dark:bg-gray-800 p-6">
                 <div className="flex items-center mb-6">
                   <Clock className="w-6 h-6 text-blue-500 mr-3" />
@@ -487,7 +517,7 @@ export default function Analytics() {
                   </div>
                 </div>
                 <div className="space-y-3">
-                  {expenseData.proximasRecorrencias.map((rec: any, index: number) => (
+                  {(expenseData?.proximasRecorrencias || []).map((rec: { nome: string; valor: number; proximaData: string; categoria: string; descricao: string }, index: number) => (
                     <div key={index} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
                       <div className="flex items-center">
                         <div className="w-3 h-3 rounded-full mr-3" style={{ backgroundColor: getCategoryColor(rec.categoria) }}></div>
@@ -522,9 +552,9 @@ export default function Analytics() {
               <p className="text-gray-500 dark:text-gray-400 mb-6">
                 Adicione gastos para visualizar relatórios e análises detalhadas.
               </p>
-              <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+              <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">
                 Adicionar Primeiro Gasto
-              </Button>
+              </button>
             </div>
           </Card>
         )}

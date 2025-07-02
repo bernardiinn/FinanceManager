@@ -103,6 +103,16 @@ export interface PaymentRecord {
   createdAt: string;
 }
 
+// User management types
+export interface User {
+  id: string;
+  name: string;
+  email?: string;
+  isActive: boolean;
+  createdAt: string;
+  lastActive: string;
+}
+
 // Summary types for calculations
 export interface CartaoSummary {
   id: string;
@@ -174,8 +184,8 @@ export interface AnalyticsData {
 // Export/Import types
 export interface ExportData {
   pessoas: Pessoa[];
-  settings: any;
-  theme: any;
+  settings: Record<string, unknown>;
+  theme: Record<string, unknown>;
   exportDate: string;
   version: string;
 }
@@ -220,7 +230,7 @@ export interface FormValidation {
 export type ThemeMode = 'light' | 'dark';
 
 // API response types (for future backend integration)
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   message?: string;
@@ -248,7 +258,7 @@ export interface TableColumn<T> {
   key: keyof T | string;
   label: string;
   sortable?: boolean;
-  render?: (value: any, item: T) => React.ReactNode;
+  render?: (value: unknown, item: T) => React.ReactNode;
   width?: string;
   align?: 'left' | 'center' | 'right';
 }
@@ -261,7 +271,7 @@ export interface SortConfig {
 // Event types
 export interface AppEvent {
   type: string;
-  payload?: any;
+  payload?: unknown;
   timestamp: number;
 }
 
@@ -383,4 +393,19 @@ export interface MonthlyExpenseSummary {
   total: number;
   categorias: Record<string, number>;
   count: number;
+}
+
+// Summary interfaces for dashboard
+export interface ExpenseSummary {
+  totalExpenses?: number;
+  monthlyExpenses?: number;
+  averageExpense?: number;
+  expensesByCategory?: Record<string, number>;
+  recentExpenses?: Gasto[];
+}
+
+export interface RecurringSummary {
+  total: number;
+  active: number;
+  monthlyEstimate: number;
 }

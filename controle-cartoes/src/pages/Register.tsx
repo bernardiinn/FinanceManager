@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { UserPlus, Mail, Lock, User, Eye, EyeOff, Sparkles } from 'lucide-react';
+import { User, Mail, Lock, Eye, EyeOff, UserPlus } from 'lucide-react';
 import { PrimaryButton } from '../components/ui/FormComponents';
 import { Card } from '../components/ui/Card';
 import { FormField, FormError } from '../components/ui/Form';
@@ -30,14 +30,11 @@ export default function Register() {
   const { addToast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
-  const [debugInfo, setDebugInfo] = useState<string>('');
 
   // Redirect if user becomes authenticated
   useEffect(() => {
-    setDebugInfo(prev => prev + `\n[useEffect] isAuthenticated: ${isAuthenticated}`);
     if (isAuthenticated) {
-      const from = (location.state as any)?.from?.pathname || '/';
-      setDebugInfo(prev => prev + `\n[useEffect] Redirecting to: ${from}`);
+      const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/';
       navigate(from, { replace: true });
     }
   }, [isAuthenticated, navigate, location]);
@@ -69,42 +66,33 @@ export default function Register() {
       newErrors.confirmPassword = 'As senhas não coincidem';
     }
 
-    setDebugInfo(prev => prev + `\n[validateForm] Errors: ${JSON.stringify(newErrors)}`);
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setDebugInfo(prev => prev + '\n[handleSubmit] Submit triggered');
     if (!validateForm()) {
-      setDebugInfo(prev => prev + '\n[handleSubmit] Validation failed');
       return;
     }
-    setDebugInfo(prev => prev + '\n[handleSubmit] Validation passed');
     try {
-      setDebugInfo(prev => prev + `\n[handleSubmit] Registering: ${formData.email}`);
       await register(formData.email.trim(), formData.password, formData.name.trim());
-      setDebugInfo(prev => prev + '\n[handleSubmit] Register success');
       addToast({
         type: 'success',
         title: 'Conta criada com sucesso!',
-        description: `Bem-vindo, ${formData.name}! Sua conta foi criada e você já está logado.`
       });
-    } catch (error: any) {
-      setDebugInfo(prev => prev + `\n[handleSubmit] Register error: ${error?.message}`);
-      setErrors({ submit: error.message || 'Erro ao criar conta. Tente novamente.' });
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro ao criar conta. Tente novamente.';
+      setErrors({ submit: errorMessage });
       addToast({
         type: 'error',
         title: 'Erro ao criar conta',
-        description: error.message || 'Ocorreu um erro ao criar sua conta. Tente novamente.'
       });
     }
   };
 
   const handleChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    setDebugInfo(prev => prev + `\n[handleChange] ${field}: ${value}`);
     // Clear errors when user starts typing
     if (errors[field as keyof FormErrors]) {
       setErrors(prev => ({ ...prev, [field]: undefined }));
@@ -139,7 +127,7 @@ export default function Register() {
               error={errors.name}
             >
               <Input
-                icon={<User size={20} />}
+                startIcon={<User size={20} />}
                 placeholder="Seu nome completo"
                 value={formData.name}
                 onChange={(e) => handleChange('name', e.target.value)}
@@ -155,7 +143,7 @@ export default function Register() {
               error={errors.email}
             >
               <Input
-                icon={<Mail size={20} />}
+                startIcon={<Mail size={20} />}
                 type="email"
                 placeholder="seu@email.com"
                 value={formData.email}
@@ -169,26 +157,27 @@ export default function Register() {
               label="Senha"
               required
               error={errors.password}
-              help="Mínimo de 6 caracteres"
             >
               <div className="relative">
                 <Input
-                  icon={<Lock size={20} />}
+                  startIcon={<Lock size={20} />}
                   type={showPassword ? 'text' : 'password'}
                   placeholder="Sua senha"
                   value={formData.password}
                   onChange={(e) => handleChange('password', e.target.value)}
                   disabled={isLoading}
                   autoComplete="new-password"
+                  endIcon={
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                      disabled={isLoading}
+                    >
+                      {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
+                  }
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                  disabled={isLoading}
-                >
-                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                </button>
               </div>
             </FormField>
 
@@ -199,22 +188,24 @@ export default function Register() {
             >
               <div className="relative">
                 <Input
-                  icon={<Lock size={20} />}
+                  startIcon={<Lock size={20} />}
                   type={showConfirmPassword ? 'text' : 'password'}
                   placeholder="Digite novamente sua senha"
                   value={formData.confirmPassword}
                   onChange={(e) => handleChange('confirmPassword', e.target.value)}
                   disabled={isLoading}
                   autoComplete="new-password"
+                  endIcon={
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                      disabled={isLoading}
+                    >
+                      {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
+                  }
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                  disabled={isLoading}
-                >
-                  {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                </button>
               </div>
             </FormField>
 
@@ -252,15 +243,6 @@ export default function Register() {
             </p>
           </div>
 
-          {/* Debug Info (visible for mobile troubleshooting) */}
-          <div className="mt-6 p-4 bg-yellow-50 dark:bg-yellow-900 rounded-lg text-xs text-yellow-800 dark:text-yellow-200 whitespace-pre-wrap break-all">
-            <strong>Debug Info:</strong>
-            <div>{debugInfo}</div>
-            <div>isAuthenticated: {String(isAuthenticated)}</div>
-            <div>isLoading: {String(isLoading)}</div>
-            <div>Email: {formData.email}</div>
-            <div>Name: {formData.name}</div>
-          </div>
         </Card>
       </div>
     </div>

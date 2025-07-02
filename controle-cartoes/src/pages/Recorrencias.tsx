@@ -7,18 +7,13 @@ import { Link } from 'react-router-dom';
 import { 
   Plus, 
   RefreshCw, 
-  Calendar,
   DollarSign,
   Clock,
   Edit2,
   Trash2,
   Play,
   Pause,
-  CheckCircle,
-  AlertCircle,
-  Activity,
-  Target,
-  TrendingUp
+  CheckCircle
 } from 'lucide-react';
 import { PageLayout, Card, TwoColumnGrid } from '../components/ui/Layout';
 import { PrimaryButton } from '../components/ui/FormComponents';
@@ -33,6 +28,7 @@ const Recorrencias: React.FC = () => {
 
   useEffect(() => {
     loadData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadData = async () => {
@@ -55,17 +51,20 @@ const Recorrencias: React.FC = () => {
 
   const handleToggleRecorrencia = async (id: string, currentStatus: boolean) => {
     try {
-      const updated = await expenseService.updateRecorrencia(id, { ativo: !currentStatus });
-      if (updated) {
-        setRecorrencias(prev => 
-          prev.map(rec => rec.id === id ? { ...rec, ativo: !currentStatus } : rec)
-        );
-        addToast({
-          type: 'success',
-          title: 'Sucesso',
-          message: `Recorrência ${!currentStatus ? 'ativada' : 'desativada'} com sucesso.`,
-        });
+      const recorrencia = await expenseService.getRecorrenciaById(id);
+      if (!recorrencia) {
+        throw new Error('Recorrência não encontrada');
       }
+      
+      await expenseService.updateRecorrencia({ ...recorrencia, ativo: !currentStatus });
+      setRecorrencias(prev => 
+        prev.map(rec => rec.id === id ? { ...rec, ativo: !currentStatus } : rec)
+      );
+      addToast({
+        type: 'success',
+        title: 'Sucesso',
+        message: `Recorrência ${!currentStatus ? 'ativada' : 'desativada'} com sucesso.`,
+      });
     } catch (error) {
       console.error('Error toggling recorrencia:', error);
       addToast({
@@ -80,17 +79,13 @@ const Recorrencias: React.FC = () => {
     if (!confirm('Tem certeza que deseja excluir esta recorrência?')) return;
 
     try {
-      const success = await expenseService.deleteRecorrencia(id);
-      if (success) {
-        setRecorrencias(prev => prev.filter(rec => rec.id !== id));
-        addToast({
-          type: 'success',
-          title: 'Sucesso',
-          message: 'Recorrência excluída com sucesso.',
-        });
-      } else {
-        throw new Error('Failed to delete recorrencia');
-      }
+      await expenseService.deleteRecorrencia(id);
+      setRecorrencias(prev => prev.filter(rec => rec.id !== id));
+      addToast({
+        type: 'success',
+        title: 'Sucesso',
+        message: 'Recorrência excluída com sucesso.',
+      });
     } catch (error) {
       console.error('Error deleting recorrencia:', error);
       addToast({
@@ -232,7 +227,7 @@ const Recorrencias: React.FC = () => {
       actions={
         <div className="flex flex-wrap gap-2">
           <PrimaryButton
-            variant="outline"
+            variant="primary"
             size="sm"
             onClick={handleProcessRecurring}
             icon={<Play size={16} />}
@@ -241,7 +236,7 @@ const Recorrencias: React.FC = () => {
           </PrimaryButton>
           
           <PrimaryButton
-            variant="outline"
+            variant="ghost"
             size="sm"
             onClick={loadData}
             icon={<RefreshCw size={16} />}
@@ -397,7 +392,7 @@ const Recorrencias: React.FC = () => {
 
                     <div className="flex items-center gap-2 ml-4">
                       <PrimaryButton
-                        variant="outline"
+                        variant="ghost"
                         size="sm"
                         onClick={() => handleToggleRecorrencia(recorrencia.id, recorrencia.ativo)}
                         className="text-orange-600 hover:text-orange-700"
@@ -405,14 +400,15 @@ const Recorrencias: React.FC = () => {
                         <Pause size={16} />
                       </PrimaryButton>
                       
-                      <Link to={`/recorrencias/${recorrencia.id}/editar`}>
-                        <PrimaryButton variant="outline" size="sm">
-                          <Edit2 size={16} />
-                        </PrimaryButton>
+                      <Link 
+                        to={`/recorrencias/${recorrencia.id}/editar`}
+                        className="inline-flex items-center justify-center px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                      >
+                        <Edit2 size={16} />
                       </Link>
                       
                       <PrimaryButton
-                        variant="outline"
+                        variant="ghost"
                         size="sm"
                         onClick={() => handleDeleteRecorrencia(recorrencia.id)}
                         className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900"
@@ -468,7 +464,7 @@ const Recorrencias: React.FC = () => {
 
                   <div className="flex items-center gap-2 ml-4">
                     <PrimaryButton
-                      variant="outline"
+                      variant="ghost"
                       size="sm"
                       onClick={() => handleToggleRecorrencia(recorrencia.id, recorrencia.ativo)}
                       className="text-green-600 hover:text-green-700"
@@ -476,14 +472,15 @@ const Recorrencias: React.FC = () => {
                       <Play size={16} />
                     </PrimaryButton>
                     
-                    <Link to={`/recorrencias/${recorrencia.id}/editar`}>
-                      <PrimaryButton variant="outline" size="sm">
-                        <Edit2 size={16} />
-                      </PrimaryButton>
+                    <Link 
+                      to={`/recorrencias/${recorrencia.id}/editar`}
+                      className="inline-flex items-center justify-center px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                    >
+                      <Edit2 size={16} />
                     </Link>
                     
                     <PrimaryButton
-                      variant="outline"
+                      variant="ghost"
                       size="sm"
                       onClick={() => handleDeleteRecorrencia(recorrencia.id)}
                       className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900"
@@ -500,7 +497,7 @@ const Recorrencias: React.FC = () => {
         {/* Quick Access */}
         <div className="flex justify-center mt-6">
           <Link to="/gastos">
-            <PrimaryButton variant="outline" icon={<DollarSign size={16} />}>
+            <PrimaryButton variant="ghost" icon={<DollarSign size={16} />}>
               Ver Todos os Gastos
             </PrimaryButton>
           </Link>

@@ -1,13 +1,7 @@
-/**
- * Gerenciar Empréstimos - Loan Management Page
- * Complete loan management with payment tracking, sorting, and filtering
- */
-
-import React, { useState, useMemo, Fragment, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   Search,
-  Filter,
   SortAsc,
   SortDesc,
   Calendar,
@@ -20,10 +14,8 @@ import {
   Plus,
   Eye,
   Edit,
-  ArrowUpDown,
   Check,
   X,
-  History,
   ChevronDown,
   ChevronUp
 } from 'lucide-react';
@@ -31,12 +23,11 @@ import { PageLayout, Card } from '../components/ui/Layout';
 import { PrimaryButton } from '../components/ui/FormComponents';
 import Input from '../components/ui/Input';
 import { useAppData, usePaymentTracking } from '../hooks';
-import { financeService } from '../services/financeService';
-import type { Cartao, Pessoa, Installment } from '../types';
+import type { Cartao, Installment } from '../types';
 
 interface LoanWithPerson extends Cartao {
   pessoaNome: string;
-  nextInstallment?: Installment;
+  nextInstallment?: Installment | null;
   overdueInstallments: number;
 }
 
@@ -45,23 +36,21 @@ type SortDirection = 'asc' | 'desc';
 type FilterStatus = 'all' | 'active' | 'completed' | 'overdue';
 
 export default function GerenciarEmprestimos() {
-  const { pessoas, setPessoas, reloadFromStorage } = useAppData();
+  const { pessoas, reloadFromStorage } = useAppData();
   const { 
     markInstallmentAsPaid, 
     markInstallmentAsUnpaid, 
     getNextInstallment, 
-    getOverdueInstallmentsCount,
-    getPaymentHistory
+    getOverdueInstallmentsCount
   } = usePaymentTracking();
   
   const [searchTerm, setSearchTerm] = useState('');
   const [sortField, setSortField] = useState<SortField>('vencimento');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
-  const [selectedLoan, setSelectedLoan] = useState<string | null>(null);
   const [expandedLoans, setExpandedLoans] = useState<string[]>([]);
   const [processingPayments, setProcessingPayments] = useState<Set<string>>(new Set());
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [, setRefreshTrigger] = useState(0);
 
   // Transform loans data with person information and auto-generate missing installments
   const allLoans: LoanWithPerson[] = useMemo(() => {
@@ -109,24 +98,12 @@ export default function GerenciarEmprestimos() {
     });
     
     // Update the data immediately if we generated any installments
-    if (needsUpdate && setPessoas) {
-      // Use a React effect to update after render, but mark the flag so we know to update
-      const updateTimer = setTimeout(() => {
-        setPessoas(processedPessoas);
-      }, 0);
-      
-      // Clean up timer
-      return processedPessoas.flatMap(pessoa => 
-        pessoa.cartoes.map(cartao => ({
-          ...cartao,
-          pessoaNome: pessoa.nome,
-          nextInstallment: getNextInstallment(cartao),
-          overdueInstallments: getOverdueInstallmentsCount(cartao)
-        }))
-      );
+    if (needsUpdate) {
+      // Mark that we've updated the data - the refreshData will be called by the component
+      console.log('Generated missing installments for loans');
     }
     
-    return pessoas.flatMap(pessoa => 
+    return processedPessoas.flatMap(pessoa => 
       pessoa.cartoes.map(cartao => ({
         ...cartao,
         pessoaNome: pessoa.nome,
@@ -134,11 +111,11 @@ export default function GerenciarEmprestimos() {
         overdueInstallments: getOverdueInstallmentsCount(cartao)
       }))
     );
-  }, [pessoas, setPessoas, getNextInstallment, getOverdueInstallmentsCount, refreshTrigger]);
+  }, [pessoas, getNextInstallment, getOverdueInstallmentsCount]);
 
   // Filter and sort loans
   const filteredAndSortedLoans = useMemo(() => {
-    let filtered = allLoans.filter(loan => {
+    const filtered = allLoans.filter(loan => {
       // Search filter
       const matchesSearch = loan.pessoaNome.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            loan.descricao.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -161,7 +138,7 @@ export default function GerenciarEmprestimos() {
 
     // Sort
     filtered.sort((a, b) => {
-      let aValue: any, bValue: any;
+      let aValue: string | number, bValue: string | number;
       
       switch (sortField) {
         case 'pessoa':
@@ -607,7 +584,7 @@ export default function GerenciarEmprestimos() {
                       <div className="flex items-center gap-2">
                         {loan.nextInstallment && (
                           <button
-                            onClick={() => handleMarkInstallmentPaid(loan.id, loan.nextInstallment.number)}
+                            onClick={() => handleMarkInstallmentPaid(loan.id, loan.nextInstallment!.number)}
                             disabled={processingPayments.has(`${loan.id}-${loan.nextInstallment.number}`)}
                             className="flex items-center gap-1 px-3 py-2 text-sm text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg transition-colors disabled:opacity-50"
                             title="Marcar próxima parcela como paga"

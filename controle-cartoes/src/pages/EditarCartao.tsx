@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { CreditCard, DollarSign, Calendar, User, FileText, Save, ArrowLeft, AlertTriangle, CheckCircle } from 'lucide-react';
+import { CreditCard, DollarSign, Calendar, User, Save, ArrowLeft, AlertTriangle, CheckCircle } from 'lucide-react';
 import { useAppData } from '../hooks';
 import { useToast } from '../components/Toast';
 
@@ -96,7 +96,7 @@ export default function EditarCartao() {
         }
         return '';
 
-      case 'valor_total':
+      case 'valor_total': {
         if (!value.trim()) {
           return 'O valor total é obrigatório';
         }
@@ -108,8 +108,9 @@ export default function EditarCartao() {
           return 'O valor deve ser menor que R$ 1.000.000,00';
         }
         return '';
+      }
 
-      case 'numero_de_parcelas':
+      case 'numero_de_parcelas': {
         if (!value.trim()) {
           return 'O número de parcelas é obrigatório';
         }
@@ -124,8 +125,9 @@ export default function EditarCartao() {
           return 'O número de parcelas deve ser maior ou igual às parcelas pagas';
         }
         return '';
+      }
 
-      case 'parcelas_pagas':
+      case 'parcelas_pagas': {
         if (!value.trim()) {
           return 'O número de parcelas pagas é obrigatório';
         }
@@ -139,8 +141,9 @@ export default function EditarCartao() {
           return 'As parcelas pagas não podem ser maiores que o total de parcelas';
         }
         return '';
+      }
 
-      case 'data_compra':
+      case 'data_compra': {
         if (!value) {
           return 'A data da compra é obrigatória';
         }
@@ -156,12 +159,14 @@ export default function EditarCartao() {
           return 'A data não pode ser anterior a um ano';
         }
         return '';
+      }
 
-      case 'pessoa_id':
+      case 'pessoa_id': {
         if (!value) {
           return 'Selecione uma pessoa';
         }
         return '';
+      }
 
       default:
         return '';
@@ -289,7 +294,7 @@ export default function EditarCartao() {
         navigate(`/cartoes/${cartao.id}`);
       }, 1000);
 
-    } catch (error) {
+    } catch {
       addToast({ type: 'error', title: 'Erro ao atualizar cartão. Tente novamente.' });
     } finally {
       setIsSubmitting(false);
@@ -308,8 +313,8 @@ export default function EditarCartao() {
   // Show loading state
   if (isLoading) {
     return (
-      <PageLayout>
-        <LoadingOverlay message="Carregando dados do cartão..." />
+      <PageLayout title="Editar Cartão">
+        <LoadingOverlay isVisible={true} message="Carregando dados do cartão..." />
       </PageLayout>
     );
   }
@@ -317,7 +322,7 @@ export default function EditarCartao() {
   // Show not found state
   if (!cartao || !pessoa) {
     return (
-      <PageLayout>
+      <PageLayout title="Cartão não encontrado">
         <Card className="text-center py-12">
           <div className="flex flex-col items-center gap-4">
             <div className="p-3 bg-amber-100 dark:bg-amber-900/30 rounded-full">
@@ -349,7 +354,7 @@ export default function EditarCartao() {
   const isFullyPaid = parseInt(formData.parcelas_pagas) === parseInt(formData.numero_de_parcelas);
 
   return (
-    <PageLayout>
+    <PageLayout title="Editar Cartão">
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
         <PrimaryButton
@@ -358,7 +363,9 @@ export default function EditarCartao() {
           size="sm"
           icon={<ArrowLeft size={16} />}
           className="!p-2"
-        />
+        >
+          Voltar
+        </PrimaryButton>
         <div className="flex-1">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
             <CreditCard size={24} />
@@ -569,7 +576,7 @@ export default function EditarCartao() {
 
       {/* Loading Overlay */}
       {isSubmitting && (
-        <LoadingOverlay message="Salvando alterações..." />
+        <LoadingOverlay isVisible={isSubmitting} message="Salvando alterações..." />
       )}
     </PageLayout>
   );

@@ -2,7 +2,7 @@
  * Gastos (Expenses) Page - Main expenses management interface
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   Plus, 
@@ -10,15 +10,11 @@ import {
   Calendar,
   DollarSign,
   TrendingUp,
-  PieChart,
   Search,
   Edit2,
   Trash2,
-  Download,
   RefreshCw,
-  BarChart3,
-  Tag,
-  TrendingDown
+  BarChart3
 } from 'lucide-react';
 import { PageLayout, Card, TwoColumnGrid } from '../components/ui/Layout';
 import { PrimaryButton } from '../components/ui/FormComponents';
@@ -52,15 +48,7 @@ const Gastos: React.FC = () => {
 
   const { addToast } = useToast();
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  useEffect(() => {
-    applyFilters();
-  }, [gastos, filters, selectedMonth]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
       
@@ -97,9 +85,9 @@ const Gastos: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [addToast, selectedMonth]);
 
-  const applyFilters = () => {
+  const applyFilters = useCallback(() => {
     let filtered = [...gastos];
 
     // Search filter
@@ -135,23 +123,27 @@ const Gastos: React.FC = () => {
     }
 
     setFilteredGastos(filtered);
-  };
+  }, [gastos, filters, selectedMonth]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  useEffect(() => {
+    applyFilters();
+  }, [applyFilters]);
 
   const handleDeleteGasto = async (id: string) => {
     if (!confirm('Tem certeza que deseja excluir este gasto?')) return;
 
     try {
-      const success = expenseService.deleteGasto(id);
-      if (success) {
-        addToast({
-          type: 'success',
-          title: 'Sucesso',
-          message: 'Gasto excluído com sucesso.',
-        });
-        loadData();
-      } else {
-        throw new Error('Failed to delete expense');
-      }
+      await expenseService.deleteGasto(id);
+      addToast({
+        type: 'success',
+        title: 'Sucesso',
+        message: 'Gasto excluído com sucesso.',
+      });
+      loadData();
     } catch (error) {
       console.error('Error deleting gasto:', error);
       addToast({
@@ -210,7 +202,7 @@ const Gastos: React.FC = () => {
         <div className="flex flex-wrap gap-2">
           <PrimaryButton
             size="sm"
-            variant="outline"
+            variant="secondary"
             onClick={() => setShowFilters(!showFilters)}
             icon={<Filter size={16} />}
           >
@@ -219,7 +211,7 @@ const Gastos: React.FC = () => {
           
           <PrimaryButton
             size="sm"
-            variant="outline"
+            variant="secondary"
             onClick={loadData}
             icon={<RefreshCw size={16} />}
           >
@@ -345,7 +337,7 @@ const Gastos: React.FC = () => {
 
             <div className="flex justify-end mt-4">
               <PrimaryButton
-                variant="outline"
+                variant="secondary"
                 size="sm"
                 onClick={() => {
                   setFilters({
@@ -418,7 +410,7 @@ const Gastos: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">
-                    {formatCurrency(selectedMonthData.average)}
+                    {formatCurrency(selectedMonthData.count > 0 ? selectedMonthData.total / selectedMonthData.count : 0)}
                   </h3>
                   <p className="text-sm text-gray-600 dark:text-gray-400">Média Diária</p>
                 </div>
@@ -436,7 +428,7 @@ const Gastos: React.FC = () => {
             
             <div className="flex gap-2">
               <Link to="/recorrencias">
-                <PrimaryButton variant="outline" size="sm">
+                <PrimaryButton variant="secondary" size="sm">
                   Gerenciar Recorrências
                 </PrimaryButton>
               </Link>
@@ -499,13 +491,13 @@ const Gastos: React.FC = () => {
 
                   <div className="flex items-center gap-2 ml-4">
                     <Link to={`/gastos/${gasto.id}/editar`}>
-                      <PrimaryButton variant="outline" size="sm">
+                      <PrimaryButton variant="secondary" size="sm">
                         <Edit2 size={16} />
                       </PrimaryButton>
                     </Link>
                     
                     <PrimaryButton
-                      variant="outline"
+                      variant="secondary"
                       size="sm"
                       onClick={() => handleDeleteGasto(gasto.id)}
                       className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900"

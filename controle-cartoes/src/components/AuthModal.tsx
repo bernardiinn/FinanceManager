@@ -10,7 +10,7 @@ interface AuthModalProps {
 
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess }) => {
   const { login, register, isLoading } = useSession();
-  const [isLoginMode, setIsLoginMode] = useState(true);
+  const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
@@ -27,7 +27,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
     setError('');
 
     try {
-      if (!isLoginMode) {
+      if (!isLogin) {
         // Registration validation
         if (formData.password !== formData.confirmPassword) {
           throw new Error('As senhas não coincidem');
@@ -49,8 +49,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
       setFormData({ email: '', password: '', confirmPassword: '', name: '' });
       onSuccess();
       onClose();
-    } catch (err: any) {
-      setError(err.message || 'Erro ao processar solicitação');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Erro ao processar solicitação');
     }
   };
 

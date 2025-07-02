@@ -5,14 +5,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { 
-  ArrowLeft, 
   CreditCard, 
   Save, 
   Calendar,
-  DollarSign,
   Hash,
   FileText,
-  Building,
   AlertCircle
 } from 'lucide-react';
 import { PageLayout, Card, FormLayout, FormActions } from '../components/ui/Layout';
@@ -122,7 +119,7 @@ export default function AdicionarEmprestimo() {
     }
   }, [formData.valor_total, formData.numero_de_parcelas, formData.dueDay, formData.firstPaymentDate]);
 
-  const handleChange = (field: keyof CartaoFormData, value: any) => {
+  const handleChange = (field: keyof CartaoFormData, value: unknown) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
@@ -195,24 +192,19 @@ export default function AdicionarEmprestimo() {
       }
 
       const newCartao = {
-        id: `cartao-${Date.now()}`,
         descricao: formData.descricao,
-        valorTotal: amount,
-        parcelasTotais: numInstallments,
-        parcelasPagas: 0,
-        valorPago: 0,
-        dataVencimento: formData.data_compra || new Date().toISOString().split('T')[0],
-        observacoes: formData.observacoes,
-        tipoCartao: 'credito',
-        // Keep the old format for compatibility
         valor_total: amount,
         numero_de_parcelas: numInstallments,
+        parcelas_pagas: 0,
         data_compra: formData.data_compra || new Date().toISOString().split('T')[0],
+        observacoes: formData.observacoes,
         categoria: formData.categoria,
+        pessoa_id: formData.pessoa_id,
         cardProvider: CARD_PROVIDERS.find(p => p.id === formData.cardProvider),
         cardNumber: formData.cardNumber,
         installments,
         dueDay: dueDay,
+        interestRate: undefined,
         currency: formData.currency,
         status: 'active' as const,
         createdAt: new Date().toISOString(),
