@@ -12,13 +12,61 @@ dist
 dist-ssr
 *.local
 
+# Package manager lock files (can cause conflicts)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Database files (user-specific data)
+backend/data/*.db
+backend/data/*.sqlite
+backend/data/*.sqlite3
+*.db
+*.sqlite
+*.sqlite3
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+backend/.env
+backend/.env.*
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
 .idea
-.DS_Store
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+
+# Runtime and build artifacts
+coverage/
+.nyc_output/
+build/
+public/build/
+
+# Service worker cache
+sw.js.map
+
+# Backup files
+*.backup
+*.bak
