@@ -7,6 +7,7 @@
 
 import { backendAuthService } from './backendAuthService';
 import type { Pessoa, Cartao, Gasto, Recorrencia } from '../types';
+import { generateUUID } from '../utils/uuid';
 
 class BackendDataService {
   private apiUrl: string;
@@ -74,7 +75,7 @@ class BackendDataService {
 
   async createPessoa(pessoa: Omit<Pessoa, 'id' | 'cartoes'>): Promise<Pessoa> {
     // Generate UUID for the pessoa
-    const id = crypto.randomUUID();
+    const id = generateUUID();
     
     const response = await this.request<Record<string, unknown>>('/data/pessoas', {
       method: 'POST',
@@ -125,7 +126,7 @@ class BackendDataService {
 
   async createCartao(pessoaId: string, cartao: Omit<Cartao, 'id'>): Promise<Cartao> {
     // Generate UUID for the cartao
-    const id = crypto.randomUUID();
+    const id = generateUUID();
     
     const response = await this.request<Record<string, unknown>>('/data/cartoes', {
       method: 'POST',
@@ -216,7 +217,7 @@ class BackendDataService {
   }
 
   async createGasto(gasto: Omit<Gasto, 'id'>): Promise<Gasto> {
-    const id = crypto.randomUUID();
+    const id = generateUUID();
     // Always map camelCase to snake_case for backend
     const payload: any = {
       id,
@@ -310,7 +311,7 @@ class BackendDataService {
   }
 
   async createRecorrencia(recorrencia: Omit<Recorrencia, 'id'>): Promise<Recorrencia> {
-    const id = crypto.randomUUID();
+    const id = generateUUID();
     
     const response = await this.request<Record<string, unknown>>('/data/recorrencias', {
       method: 'POST',

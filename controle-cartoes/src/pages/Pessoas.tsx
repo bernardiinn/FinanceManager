@@ -32,7 +32,7 @@ export default function Pessoas() {
   }, [pessoas]);
 
   return (
-    <PageLayout>
+    <PageLayout title="Pessoas">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div className="flex-1">
