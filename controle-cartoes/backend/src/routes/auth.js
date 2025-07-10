@@ -8,6 +8,7 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const { runQuery, getRow, getAllRows } = require('../database');
 const { authenticateToken } = require('../middleware/auth');
+const { generateUUID } = require('../utils/uuid');
 
 const router = express.Router();
 
@@ -17,7 +18,7 @@ const SALT_ROUNDS = 12;
 
 // Helper function to create session
 const createSession = async (userId, token, req) => {
-  const sessionId = crypto.randomUUID();
+  const sessionId = generateUUID();
   const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
   const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes
   

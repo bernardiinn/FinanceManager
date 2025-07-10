@@ -12,6 +12,7 @@ require('dotenv').config();
 const { createTables } = require('./src/database');
 const authRoutes = require('./src/routes/auth');
 const dataRoutes = require('./src/routes/data');
+const adminRoutes = require('./src/routes/admin');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -60,6 +61,7 @@ app.get('/health', (req, res) => {
     endpoints: {
       auth: '/api/auth',
       data: '/api/data',
+      admin: '/admin',
       health: '/health'
     }
   });
@@ -68,6 +70,7 @@ app.get('/health', (req, res) => {
 // API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/data', dataRoutes);
+app.use('/admin', adminRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
